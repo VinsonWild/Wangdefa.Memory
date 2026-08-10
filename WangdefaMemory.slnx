@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="ConsoleDemo/ConsoleDemo.csproj" />
+  <Project Path="Test/Test.csproj" />
+  <Project Path="WangdefaMemory/WangdefaMemory.csproj" />
+</Solution>

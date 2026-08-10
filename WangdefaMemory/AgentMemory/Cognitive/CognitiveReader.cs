@@ -1,0 +1,212 @@
+﻿using System.Text.Json;
+using Wangdefa.AgentMemory.FeatureEngine;
+using Wangdefa.AgentMemory.Interfaces;
+using Wangdefa.AgentMemory.Models;
+using Wangdefa.AgentMemory.Signal;
+
+namespace Wangdefa.AgentMemory.Cognitive;
+
+/// <summary>
+/// 认知层读取器 - 通过特征推演检索认知卡片
+/// </summary>
+public class CognitiveReader
+{
+    private readonly string _recordsPath;
+    private readonly FeatureEngine.FeatureEngine _featureEngine;
+    private readonly IThinkingStore _thinkingStore;
+    private readonly IKnowledgeStore _knowledgeStore;
+
+    // 时间衰减系数，可调
+    private const double DECAY_RATE = 0.05;
+
+    public CognitiveReader(
+        string recordsPath,
+        FeatureEngine.FeatureEngine featureEngine,
+        IThinkingStore thinkingStore,
+        IKnowledgeStore knowledgeStore)
+    {
+        _recordsPath = recordsPath;
+        _featureEngine = featureEngine;
+        _thinkingStore = thinkingStore;
+        _knowledgeStore = knowledgeStore;
+    }
+
+    /// <summary>
+    /// 匹配单条（默认用 input 分词检索）
+    /// </summary>
+    public async Task<CognitiveMatchResultModel?> Match(string input, List<string>? history = null, string? topicId = null)
+    {
+        var results = await MatchTopN(input, history ?? new List<string>(), topicId, 1);
+        return results.FirstOrDefault();
+    }
+
+    /// <summary>
+    /// 匹配单条（用语义标签检索，由 A 线 semantic_tags 驱动）
+    /// </summary>
+    public async Task<CognitiveMatchResultModel?> Match(string input, string[] semanticTags, List<string>? history = null, string? topicId = null)
+    {
+        var results = await MatchTopN(input, semanticTags, history ?? new List<string>(), topicId, 1);
+        return results.FirstOrDefault();
+    }
+
+    /// <summary>
+    /// 匹配单条（直接用 code 列表检索）
+    /// </summary>
+    public async Task<CognitiveMatchResultModel?> MatchByCodes(List<string> codes, string? topicId = null)
+    {
+        var results = await MatchTopNByCodes(codes, topicId, 1);
+        return results.FirstOrDefault();
+    }
+
+    /// <summary>
+    /// 匹配多条（默认用 input 分词检索）
+    /// </summary>
+    public async Task<List<CognitiveMatchResultModel>> MatchTopN(
+        string input,
+        List<string> history,
+        string? topicId = null,
+        int topN = 3)
+    {
+        return await MatchTopN(input, null, history, topicId, topN);
+    }
+
+    /// <summary>
+    /// 匹配多条（用语义标签检索）
+    /// </summary>
+    public async Task<List<CognitiveMatchResultModel>> MatchTopN(
+        string input,
+        string[]? semanticTags,
+        List<string> history,
+        string? topicId = null,
+        int topN = 3)
+    {
+        List<string> searchCodes;
+        if (semanticTags != null && semanticTags.Length > 0)
+        {
+            searchCodes = new List<string>();
+            foreach (var tag in semanticTags)
+            {
+                var code = _featureEngine.Tags.GetCode(tag);
+                if (code != null)
+                {
+                    searchCodes.Add(code);
+                }
+                else
+                {
+                    var entry = _featureEngine.Tags.Add(tag, "content", "", "auto");
+                    searchCodes.Add(entry.Code);
+                }
+            }
+            Console.WriteLine($"🧠 特征推演使用语义标签: {string.Join(", ", semanticTags)} → codes: {string.Join(", ", searchCodes)}");
+        }
+        else
+        {
+            searchCodes = _featureEngine.ExtractCodes(input);
+            Console.WriteLine($"🧠 特征推演使用原始输入: {input} → codes: {string.Join(", ", searchCodes)}");
+        }
+
+        if (searchCodes.Count == 0)
+        {
+            Console.WriteLine("🧠 未提取到任何检索 code");
+            return new List<CognitiveMatchResultModel>();
+        }
+
+        return await MatchTopNByCodes(searchCodes, topicId, topN);
+    }
+
+    /// <summary>
+    /// 匹配多条（直接用 code 列表检索）
+    /// </summary>
+    public async Task<List<CognitiveMatchResultModel>> MatchTopNByCodes(
+        List<string> codes,
+        string? topicId = null,
+        int topN = 3)
+    {
+        if (codes == null || codes.Count == 0)
+        {
+            Console.WriteLine("🧠 code 列表为空，无法检索");
+            return new List<CognitiveMatchResultModel>();
+        }
+
+        var featureResults = _featureEngine.Search(
+            initialCodes: codes,
+            maxDepth: 3,
+            maxCards: 50,
+            topN: topN * 2); // 多取一些，留给时间衰减排序后筛选
+
+        if (featureResults == null || featureResults.Count == 0)
+        {
+            Console.WriteLine($"🧠 特征推演未命中认知卡片 (codes: {string.Join(", ", codes)})");
+            return new List<CognitiveMatchResultModel>();
+        }
+
+        var results = new List<CognitiveMatchResultModel>();
+        var now = DateTime.Now;
+
+        foreach (var fr in featureResults)
+        {
+            var record = await LoadCognitiveRecord(fr.CardId);
+            if (record == null) continue;
+
+            PerceptionModel? perception = null;
+            if (!string.IsNullOrEmpty(record.RecordId))
+            {
+                var eventModel = await _thinkingStore.LoadEvent(record.RecordId);
+                perception = eventModel?.Perception;
+            }
+
+            DiversionIndexModel? diversionIndex = null;
+            if (!string.IsNullOrEmpty(record.RecordId))
+            {
+                diversionIndex = await _thinkingStore.LoadIndex(record.RecordId, topicId);
+            }
+
+            // ★ 计算时间衰减
+            var createdAt = record.CreatedAt;
+            double timeDecay = 1.0;
+            if (createdAt != default)
+            {
+                var daysAgo = (now - createdAt).TotalDays;
+                timeDecay = Math.Exp(-DECAY_RATE * daysAgo);
+            }
+
+            // ★ 最终置信度 = 匹配强度 × 时间衰减
+            var finalConfidence = fr.Strength * timeDecay;
+
+            results.Add(new CognitiveMatchResultModel
+            {
+                Summary = record.Insight?.Summary ?? "",
+                ContentTags = record.Insight?.ContentTags ?? new string[0],
+                RelationTags = record.Insight?.RelationTags ?? new List<RelationTag>(),
+                RecordId = record.RecordId,
+                Perception = perception ?? record.Perception,
+                Insight = record.Insight,
+                Confidence = finalConfidence,
+                CreatedAt = createdAt,
+                SummaryPointer = diversionIndex?.SummaryPointer,
+                OverviewPointer = diversionIndex?.OverviewPointer,
+                FullTextPointer = diversionIndex?.FullTextPointer,
+                FullTextType = diversionIndex?.FullTextType,
+                SourcePath = record.SourcePath,
+                Preferences = record.Insight?.Preferences ?? new List<PreferenceEntry>()
+            });
+        }
+
+        // ★ 按最终置信度降序排序，取 TopN
+        results = results
+            .OrderByDescending(r => r.Confidence)
+            .Take(topN)
+            .ToList();
+
+        Console.WriteLine($"🧠 认知层命中 {results.Count} 条记录（时间衰减已应用）");
+        return results;
+    }
+
+    private async Task<CognitiveRecordModel?> LoadCognitiveRecord(string recordId)
+    {
+        var path = Path.Combine(_recordsPath, $"{recordId}.json");
+        if (!File.Exists(path)) return null;
+        var json = await File.ReadAllTextAsync(path);
+        return JsonSerializer.Deserialize<CognitiveRecordModel>(json);
+    }
+}
