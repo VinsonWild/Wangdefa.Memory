@@ -4,12 +4,18 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+
+		<!-- NuGet 包信息 -->
 		<PackageId>Wangdefa.Memory</PackageId>
 		<Version>1.0.0</Version>
 		<Authors>wangdefa</Authors>
 		<Description>本地优先的 Agent 五层记忆体组件</Description>
 		<PackageTags>agent;memory;ai;local;sqlite</PackageTags>
-		<RepositoryUrl>https://github.com/yourname/Wangdefa.Memory</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/VinsonWild/Wangdefa.Memory</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/VinsonWild/Wangdefa.Memory</RepositoryUrl>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	</PropertyGroup>
 
 	<ItemGroup>
