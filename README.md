@@ -1,5 +1,14 @@
-&nbsp;
+根据我们之前的改动，需要更新 README 的以下内容：
+
+1. **版本号**：`v1.0.0` → `v0.2.0`
+2. **写入逻辑**：改为两阶段写入
+3. **查询逻辑**：增加 pending 过滤说明
+4. **写入流程图**：更新为两阶段流程
+5. **MCP 适配说明**（如果你要加）
+
 ---
+
+## 完整更新版 README.md
 
 ```markdown
 # Wangdefa.Memory
@@ -8,7 +17,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
-[![NuGet](https://img.shields.io/badge/NuGet-v1.0.0-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
+[![NuGet](https://img.shields.io/badge/NuGet-v0.2.0-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
 
 ---
 
@@ -32,14 +41,13 @@ Wangdefa.Memory 选择了无向量记忆体方向（不排除未来有弱向量�
 |------|------|
 | **五层记忆架构** | 认知层 / 特征推演 / 思考层 / 阅历层 / 传递层 |
 | **特征推演引擎** | 标签池 + 密码簿 + 特征统计 + 时间衰减，让记忆通过认知驱动 |
+| **两阶段写入** | 先写框架（pending），后补全（completed），支持状态标记 |
 | **偏好闭环** | 用户反馈自动转化为偏好，持续学习 |
 | **意图驱动检索** | 根据意图决定记忆注入深度（shallow / medium / deep） |
 | **标签演化** | 合并 / 分裂 / 弃用，标签自动优化 |
 | **本地优先** | 所有数据存储在本地 SQLite + JSON |
 | **轻量依赖** | 仅依赖 SQLite + System.Text.Json |
-| **接口实现** | 事件记忆通过实现 `IChatService` 即可集成， 知识及资料记忆通过‘ISQLiteTools’写入实现。|
-
----
+| **MCP 适配** | 支持通过 MCP 协议接入 DSH，提供 ProcessMessage / SaveMemory 工具 |
 
 ---
 
@@ -53,7 +61,7 @@ Wangdefa.Memory 选择了无向量记忆体方向（不排除未来有弱向量�
 |------|--------|-------------|
 | **标签池（TagDictionary）** | 所有标签 + 定义 + 近义词 | "这个标签存在吗？它的 code 是什么？" |
 | **密码簿（PasswordBook）** | code → 卡片ID 列表 | "这个标签关联了哪些卡片？" |
-| **特征池（FeatureStats）** | 每张卡片 → 它有哪些标签 | "这张卡片有哪些标签？" |
+| **特征统计（FeatureStats）** | 每张卡片 → 它有哪些标签 | "这张卡片有哪些标签？" |
 
 
 推演流程
@@ -66,7 +74,8 @@ Wangdefa.Memory 选择了无向量记忆体方向（不排除未来有弱向量�
 3. **密码簿查询**：用 `code` 查密码簿，拿到卡片ID列表
 4. **特征池匹配**：用卡片ID查特征池，确认卡片实际包含哪些标签，计算匹配强度
 5. **时间衰减**：匹配强度 × `exp(-0.05 × 天数)`，新记忆优先
-6. **排序返回**：按最终权重降序返回 TopN
+6. **状态过滤**：只返回 `completed` 状态的卡片，过滤 `pending` 空卡
+7. **排序返回**：按最终权重降序返回 TopN
 
 ### 调用方式
 
@@ -77,6 +86,8 @@ var result = await memory.CognitiveMatch(
     semanticTags: new[] { "代码风格" }
 );
 ```
+
+---
 
 ## 🏗️ 架构图
 
@@ -89,6 +100,7 @@ var result = await memory.CognitiveMatch(
 │  │                         对外接口（IWangdefaMemory）                         │   │
 │  │                                                                             │   │
 │  │   SinkAsync()          CognitiveMatch()          AddTagWithSynonyms()       │   │
+│  │   WriteMemoryFrame()   CompleteMemory()                                     │   │
 │  └─────────────────────────────────────────────────────────────────────────────┘   │
 │                                    │                                               │
 │                                    ▼                                               │
@@ -105,7 +117,7 @@ var result = await memory.CognitiveMatch(
 │  │   └───────────────┘    └───────────────┘    └───────────────┘              │   │
 │  │                                                                             │   │
 │  │   匹配流程：                                                                 │   │
-│  │   标签输入 → 精准匹配 → 近义匹配 → 时间衰减排序 → 返回卡片ID                │   │
+│  │   标签输入 → 精准匹配 → 近义匹配 → 时间衰减排序 → 状态过滤 → 返回卡片ID     │   │
 │  │                                                                             │   │
 │  └─────────────────────────────────────────────────────────────────────────────┘   │
 │                                    │                                               │
@@ -125,7 +137,7 @@ var result = await memory.CognitiveMatch(
 │  │   │  思考层          │    │  阅历层          │    │  知识层          │        │   │
 │  │   │ ThinkingStore   │    │  EventStore     │    │ KnowledgeStore  │        │   │
 │  │   │                 │    │  MemorySink     │    │                 │        │   │
-│  │   │ 分流索引         │    │  事件存储        │    │ 概览+摘要        │        │   │
+│  │   │ 分流索引         │    │  事件存储        │    │  概览+摘要        │        │   │
 │  │   └─────────────────┘    └─────────────────┘    └─────────────────┘        │   │
 │  └─────────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                     │
@@ -152,9 +164,10 @@ var result = await memory.CognitiveMatch(
 memory/
 ├── chat_history.db                         ← 聊天历史
 ├── wangdefa_memory.db                      ← SQLite 备份
+├── feature_pool.db                         ← 标签池 + 密码簿 + 特征统计
 ├── cognitive/
 │   └── records/
-│       └── 认知_xxx.json                   ← L1 认知层
+│       └── 认知_xxx.json                   ← L1 认知层（含 Status 状态标记）
 ├── experience/
 │   ├── events/
 │   │   └── 2026-08-10/
@@ -173,102 +186,31 @@ memory/
 
 ## 🔁 数据流
 
-```
-用户输入
-    ↓
-L1 认知层（CognitiveReader）→ 获取语义后读取认知卡片
-    ↓
-L4 特征推演（FeatureEngine）→ 标签匹配 + 时间衰减排序
-    ↓
-L2 思考层（ThinkingStore）→ 分流索引（记录去哪找）
-    ↓
-L5 传递层（Middleware）→ 路由分流（浅/中/深）
-    ↓
-L3 阅历层（EventStore / KnowledgeStore / MemorySinkService）→ 存储事件 + 知识
-```
-
----
-
-## 写入逻辑
+### 写入流程（两阶段）
 
 ```
-传入参数：
-userInput, agentResponse, perception, summary, overview, tags, route
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  MemorySinkService.SinkAsync()                                  │
-│                                                                 │
-│  ① 构建认知记录                                                 │
-│     recordId = 认知_20260810_143022                            │
-│     Insight = { ContentTags, Summary, Preferences }            │
-│     ↓                                                          │
-│  ② 写入 JSON 文件                                              │
-│     memory/cognitive/records/认知_20260810_143022.json        │
-│     ↓                                                          │
-│  ③ TagCard（特征池更新）                                       │
-│     FeatureEngine.TagCard(recordId, tags)                     │
-│     ├── 标签池：新标签 + definition                            │
-│     ├── 密码簿：code → 卡片ID                                  │
-│     └── 特征统计：命中次数 +1                                  │
-│     ↓                                                          │
-│  ④ 分流索引（ThinkingStore.SaveIndex）                         │
-│     memory/thinking/chat/{topicId}/记录_xxx.json              │
-│     存：SummaryPointer / OverviewPointer / FullTextPointer    │
-│     ↓                                                          │
-│  ⑤ 知识层（概览 + 摘要）                                       │
-│     memory/experience/knowledge/{topicId}/概览_xxx.json      │
-│     memory/experience/knowledge/{topicId}/摘要_xxx.json      │
-│     ↓                                                          │
-│  ⑥ SQLite 备份                                                │
-│     memory/wangdefa_memory.db                                 │
-│     ↓                                                          │
-│  ⑦ 事件存储                                                   │
-│     memory/experience/events/{date}/事件_xxx.json             │
-│     ↓                                                          │
-│  ⑧ 后台学习（异步）                                           │
-│     LearningOrchestrator.ProcessAsync(evt)                    │
-└─────────────────────────────────────────────────────────────────┘
+阶段一：写框架（WriteMemoryFrame）
+用户输入 → A线 提取标签 → 中间件 → 写框架（Status = pending）
+    ├── 创建认知卡片（标签 + 感知信息）
+    ├── 写入密码簿（code → 卡片ID）
+    └── 返回 frameId
+
+阶段二：补全（CompleteMemory）
+Agent 生成回复 → 调用 SaveMemory(frameId, agentResponse)
+    ├── 填充 Summary
+    ├── 更新 Status → completed / interrupted / failed
+    ├── 更新特征统计（提高检索权重）
+    └── 记忆可被检索
 ```
 
----
-
-## 查询逻辑
+### 查询流程
 
 ```
-传入参数：
-input, semanticTags, topicId
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  CognitiveReader.Match()                                       │
-│                                                                 │
-│  ① 语义标签 → 标签 code                                        │
-│     semanticTags: ["规划", "开源"]                             │
-│     FeatureEngine.Tags.GetCode(tag) → code                    │
-│     ↓                                                          │
-│  ② 特征推演检索                                               │
-│     FeatureEngine.Search(codes)                               │
-│     ├── 精准匹配：tag + dimension → code                      │
-│     ├── 近义匹配：synonyms → code                             │
-│     ├── 时间衰减：匹配强度 × exp(-0.05 × 天数)               │
-│     └── 排序返回 TopN                                         │
-│     ↓                                                          │
-│  ③ 加载认知卡片                                               │
-│     LoadCognitiveRecord(cardId)                               │
-│     memory/cognitive/records/认知_xxx.json                    │
-│     ↓                                                          │
-│  ④ 加载关联数据                                               │
-│     Perception（从事件加载）                                   │
-│     DiversionIndex（从思考层加载）                             │
-│     ↓                                                          │
-│  ⑤ 返回 CognitiveMatchResult                                  │
-│     { Summary, ContentTags, Preferences, Confidence,          │
-│       SourcePath, RecordId }                                  │
-└─────────────────────────────────────────────────────────────────┘
+用户输入 → A线 提取标签 → 中间件
+    ├── 特征推演检索（标签匹配 + 时间衰减）
+    ├── 状态过滤（只返回 completed 卡片）
+    └── 返回 CognitiveMatchResult
 ```
-
-
 
 ---
 
@@ -347,18 +289,23 @@ ServiceRegistry.Initialize(chatService, basePath);
 var memory = ServiceRegistry.GetWangdefaMemory();
 ```
 
-### 3. 写入记忆
+### 3. 写入记忆（两阶段）
 
 ```csharp
-await memory.SinkAsync(
-    userInput: "我喜欢用简洁的风格写代码",
-    agentResponse: "好的，已记录你的偏好",
+// 阶段一：写框架
+var frameId = await memory.WriteMemoryFrame(
     topicId: "demo",
+    userInput: "我喜欢用简洁的风格写代码",
     perception: new PerceptionModel { Scene = "工作" },
-    summary: "用户偏好简洁代码风格",
-    overview: "用户喜欢简洁、可读性强的代码风格",
     tags: new List<string> { "代码风格", "简洁" },
     route: "shallow"
+);
+
+// 阶段二：补全
+await memory.CompleteMemory(
+    cardId: frameId,
+    agentResponse: "好的，已记录你的偏好",
+    status: "completed"
 );
 ```
 
@@ -406,7 +353,9 @@ dotnet add package Wangdefa.Memory
 | `CognitiveMatch()` | 根据语义标签匹配记忆 |
 | `CognitiveMatchByCodes()` | 根据标签 code 匹配记忆 |
 | `CognitiveMatchTopN()` | 匹配多条记忆，返回 TopN |
-| `SinkAsync()` | 写入记忆（含认知卡片、事件、知识） |
+| `WriteMemoryFrame()` | 写框架（状态 pending），返回 frameId |
+| `CompleteMemory()` | 补全卡片，更新状态和内容 |
+| `SinkAsync()` | 一次性写入（兼容旧模式） |
 | `AddTag()` | 添加标签 |
 | `AddTagWithSynonyms()` | 添加标签（含近义词） |
 | `GetTagCode()` | 获取标签 code |
@@ -445,3 +394,14 @@ See [LICENSE](LICENSE) for details.
 
 ---
 
+## 改动汇总
+
+| 位置 | 改动 |
+|------|------|
+| 版本号 |  `v0.2.0` |
+| 核心特性 | 新增「两阶段写入」「状态标记」「MCP 适配」 |
+| 匹配流程 | 新增第6步「状态过滤」 |
+| 对外接口 | 新增 `WriteMemoryFrame()` 和 `CompleteMemory()` |
+| 写入流程图 | 改为两阶段流程 |
+| 快速开始 | 改为两阶段写入示例 |
+| 存储目录 | 新增 `feature_pool.db` 和卡片 `Status` 说明 |
