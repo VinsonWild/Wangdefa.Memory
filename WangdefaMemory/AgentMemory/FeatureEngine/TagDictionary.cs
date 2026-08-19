@@ -11,8 +11,8 @@ namespace Wangdefa.AgentMemory.FeatureEngine;
 public class TagDictionary
 {
     private readonly FeatureEngineDb _db;
-    private readonly Dictionary<string, TagEntry> _tagCache;   // tag → TagEntry
-    private readonly Dictionary<string, TagEntry> _codeCache;  // code → TagEntry
+    private readonly Dictionary<string, TagEntry> _tagCache;
+    private readonly Dictionary<string, TagEntry> _codeCache;
     private int _nextSeq;
     private PasswordBook? _passwordBook;
     private bool _isFullyLoaded;
@@ -165,6 +165,39 @@ public class TagDictionary
         if (fallback != null) return fallback.Code;
 
         return Add(tag, "content", definition: "", dimension: dimension, source: "auto").Code;
+    }
+
+    /// <summary>
+    /// 用 tag + definitions 做子串匹配，返回匹配的 code
+    /// 优先级：精准匹配 > dimension匹配 > definition子串匹配
+    /// </summary>
+    public string? GetCodeByTagAndDefinitions(string tag, string[] definitions, string dimension)
+    {
+        // 1. 先用 tag + dimension 精准匹配
+        var code = GetCode(tag, dimension);
+        if (code != null) return code;
+
+        // 2. 用 tag 查所有记录，做 definition 子串匹配
+        var entries = GetAllTags().Where(e => e.Tag == tag && e.Status == "active");
+        foreach (var entry in entries)
+        {
+            if (string.IsNullOrEmpty(entry.Definition)) continue;
+
+            foreach (var def in definitions)
+            {
+                if (string.IsNullOrEmpty(def)) continue;
+
+                // 子串匹配：不区分大小写
+                if (entry.Definition.Contains(def, StringComparison.OrdinalIgnoreCase) ||
+                    def.Contains(entry.Definition, StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine($"✅ 子串匹配: {tag} → definition '{def}' 匹配到 '{entry.Definition}'");
+                    return entry.Code;
+                }
+            }
+        }
+
+        return null;
     }
 
     public TagEntry? GetEntry(string tag)

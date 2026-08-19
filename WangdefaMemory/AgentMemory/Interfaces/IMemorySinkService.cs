@@ -7,9 +7,6 @@ namespace Wangdefa.AgentMemory.Interfaces;
 /// </summary>
 public interface IMemorySinkService
 {
-    /// <summary>
-    /// 写入记忆体（从 Harness 输出直接传入）
-    /// </summary>
     Task SinkAsync(
         string userInput,
         string agentResponse,
@@ -23,4 +20,27 @@ public interface IMemorySinkService
         string? sourceType = null,
         Dictionary<string, string>? missingTagDefinitions = null,
         List<PreferenceEntry>? preferences = null);
+
+    /// <summary>
+    /// 前置写入卡片框架
+    /// </summary>
+    /// <returns>返回卡片ID</returns>
+    Task<string> WriteFrameAsync(
+        string topicId,
+        string userInput,
+        PerceptionModel perception,
+        List<string> tags,
+        string route,
+        string? sourcePath = null,
+        string? sourceType = null);
+
+    /// <summary>
+    /// 补全卡片
+    /// </summary>
+    /// <param name="cardId">卡片ID</param>
+    Task CompleteAsync(
+        string cardId,
+        string agentResponse,
+        string status,
+        string? errorMessage = null);
 }

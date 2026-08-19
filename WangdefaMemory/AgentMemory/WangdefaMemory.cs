@@ -8,7 +8,6 @@ using Wangdefa.AgentMemory.Models;
 using Wangdefa.AgentMemory.Signal;
 using Wangdefa.AgentMemory.Thinking;
 
-
 namespace Wangdefa.AgentMemory;
 
 public class WangdefaMemory : IWangdefaMemory
@@ -91,8 +90,9 @@ public class WangdefaMemory : IWangdefaMemory
         string route,
         string? sourcePath = null,
         string? sourceType = null,
-        Dictionary<string, string>? missingTagDefinitions = null)
-        => await _sinkService.SinkAsync(userInput, agentResponse, topicId, perception, summary, overview, tags, route, sourcePath, sourceType, missingTagDefinitions);
+        Dictionary<string, string>? missingTagDefinitions = null,
+        List<PreferenceEntry>? preferences = null)
+        => await _sinkService.SinkAsync(userInput, agentResponse, topicId, perception, summary, overview, tags, route, sourcePath, sourceType, missingTagDefinitions, preferences);
 
     public async Task SaveMetadataAsync(string topicId, string sourcePath, string sourceType, string fileName, long fileSize, string fileHash, string mimeType = "", string status = "pending")
         => await _metadataService.SaveMetadataAsync(topicId, sourcePath, sourceType, fileName, fileSize, fileHash, mimeType, status);
@@ -156,6 +156,9 @@ public class WangdefaMemory : IWangdefaMemory
     public string? GetTagCode(string tag, string dimension)
         => _featureEngine.Tags.GetCode(tag, dimension);
 
+    public string? GetTagCodeByTagAndDefinitions(string tag, string[] definitions, string dimension)
+        => _featureEngine.Tags.GetCodeByTagAndDefinitions(tag, definitions, dimension);
+
     public TagEntry AddTag(string tag, string dimension, string definition = "")
         => _featureEngine.Tags.Add(tag, "content", definition, dimension, "auto");
 
@@ -215,6 +218,35 @@ public class WangdefaMemory : IWangdefaMemory
 
         await Task.CompletedTask;
     }
+
+    // ============================================================
+    // 新增：C线前置写入框架 + 补全
+    // ============================================================
+
+    public async Task<string> WriteMemoryFrame(
+        string topicId,
+        string userInput,
+        PerceptionModel perception,
+        List<string> tags,
+        string route,
+        string? sourcePath = null,
+        string? sourceType = null)
+    {
+        return await _sinkService.WriteFrameAsync(topicId, userInput, perception, tags, route, sourcePath, sourceType);
+    }
+
+    public async Task CompleteMemory(
+        string cardId,
+        string agentResponse,
+        string status,
+        string? errorMessage = null)
+    {
+        await _sinkService.CompleteAsync(cardId, agentResponse, status, errorMessage);
+    }
+
+    // ============================================================
+    // 私有方法
+    // ============================================================
 
     private Timer? StartCleanTimer()
     {

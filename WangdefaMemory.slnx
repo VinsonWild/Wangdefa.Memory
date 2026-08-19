@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="ConsoleDemo/ConsoleDemo.csproj" />
   <Project Path="Test/Test.csproj" />
+  <Project Path="WangdefaMemory.MCP/WangdefaMemory.MCP.csproj" Id="0b524adf-b7f6-451c-96cd-20ead1a76e98" />
   <Project Path="WangdefaMemory/WangdefaMemory.csproj" />
 </Solution>

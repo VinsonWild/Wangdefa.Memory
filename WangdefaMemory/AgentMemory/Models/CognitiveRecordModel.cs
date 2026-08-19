@@ -5,10 +5,10 @@
 /// </summary>
 public class CognitiveRecordModel
 {
-    public string Id { get; set; } = "";                      // 认知_001
+    public string Id { get; set; } = "";
     public PerceptionModel Perception { get; set; } = new();
     public InsightModel Insight { get; set; } = new();
-    public string RecordId { get; set; } = "";                // 指向思考层完整记录
+    public string RecordId { get; set; } = "";
     public DateTime CreatedAt { get; set; }
 
     /// <summary>
@@ -25,4 +25,14 @@ public class CognitiveRecordModel
     /// 指向知识层位置（概览/摘要）
     /// </summary>
     public string SourcePath { get; set; } = "";
+
+    /// <summary>
+    /// 状态：pending / completed / interrupted / failed
+    /// </summary>
+    public string Status { get; set; } = "pending";
+
+    /// <summary>
+    /// 所属会话ID
+    /// </summary>
+    public string TopicId { get; set; } = "";
 }

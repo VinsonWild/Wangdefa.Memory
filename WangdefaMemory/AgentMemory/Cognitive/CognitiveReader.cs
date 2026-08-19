@@ -132,7 +132,7 @@ public class CognitiveReader
             initialCodes: codes,
             maxDepth: 3,
             maxCards: 50,
-            topN: topN * 2); // 多取一些，留给时间衰减排序后筛选
+            topN: topN * 2);
 
         if (featureResults == null || featureResults.Count == 0)
         {
@@ -148,6 +148,9 @@ public class CognitiveReader
             var record = await LoadCognitiveRecord(fr.CardId);
             if (record == null) continue;
 
+            // ★ 过滤：只返回已补全的卡片，跳过 pending 空卡
+            if (record.Status != "completed") continue;
+
             PerceptionModel? perception = null;
             if (!string.IsNullOrEmpty(record.RecordId))
             {
@@ -161,7 +164,6 @@ public class CognitiveReader
                 diversionIndex = await _thinkingStore.LoadIndex(record.RecordId, topicId);
             }
 
-            // ★ 计算时间衰减
             var createdAt = record.CreatedAt;
             double timeDecay = 1.0;
             if (createdAt != default)
@@ -170,7 +172,6 @@ public class CognitiveReader
                 timeDecay = Math.Exp(-DECAY_RATE * daysAgo);
             }
 
-            // ★ 最终置信度 = 匹配强度 × 时间衰减
             var finalConfidence = fr.Strength * timeDecay;
 
             results.Add(new CognitiveMatchResultModel
@@ -192,13 +193,12 @@ public class CognitiveReader
             });
         }
 
-        // ★ 按最终置信度降序排序，取 TopN
         results = results
             .OrderByDescending(r => r.Confidence)
             .Take(topN)
             .ToList();
 
-        Console.WriteLine($"🧠 认知层命中 {results.Count} 条记录（时间衰减已应用）");
+        Console.WriteLine($"🧠 认知层命中 {results.Count} 条记录（仅 completed，时间衰减已应用）");
         return results;
     }
 
