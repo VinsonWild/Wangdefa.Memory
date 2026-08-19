@@ -1,13 +1,4 @@
-改好了，在原有基础上补充了 **A线近期记忆参考** 功能。
-
-
-## 改动位置
-
-1. **核心特性**：新增 `A线近期记忆参考` 一行
-2. **更新说明**：底部新增 `v0.2.1 更新说明`
-
-
-## 完整 README.md
+好，给你完整的 README.md。
 
 ```markdown
 # Wangdefa.Memory
@@ -16,7 +7,8 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
-[![NuGet](https://img.shields.io/badge/NuGet-v0.2.0-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
+[![NuGet](https://img.shields.io/badge/NuGet-v1.1.0-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
+[![DSH Plugin](https://img.shields.io/badge/DSH-Plugin-blue.svg)](https://github.com/topics/dsh-plugin)
 
 ---
 
@@ -214,6 +206,104 @@ Agent 生成回复 → 调用 SaveMemory(frameId, agentResponse)
 
 ---
 
+## 🔌 DSH 插件使用
+
+如果你使用的是 DeepSeek Harness（DSH），可以直接将 Wangdefa.Memory 作为 MCP 插件接入。
+
+### 安装
+
+**方式一：从 GitHub 安装（推荐）**
+
+```bash
+dsh plugin add github:你的用户名/WangdefaMemory
+```
+
+**方式二：本地安装**
+
+```bash
+git clone https://github.com/你的用户名/WangdefaMemory.git
+cd WangdefaMemory
+dotnet build -c Release
+dsh plugin add ./WangdefaMemory.MCP
+```
+
+### 配置
+
+在 DSH 的 `cordis.patch.yml` 中配置 API Key：
+
+```yaml
+- insert:
+    - id: mcp-wangdefaMemory
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: WangdefaMemory
+        transport: stdio
+        command: "dotnet"
+        args:
+          - "exec"
+          - "<你的路径>/WangdefaMemory.MCP/bin/Release/net10.0/WangdefaMemory.MCP.dll"
+        cwd: "<你的路径>/WangdefaMemory.MCP"
+        env:
+          DEEPSEEK_API_KEY: '${DEEPSEEK_API_KEY}'
+```
+
+### 使用
+
+在 DSH 对话中调用 MCP 工具：
+
+**1. 处理用户消息（写框架）**
+
+```
+mcp__WangdefaMemory__process_message 帮我记录一下：我喜欢用简洁的代码风格
+```
+
+返回示例：
+```json
+{
+  "enrichedInput": "...",
+  "intent": "闲聊",
+  "hasMemory": false,
+  "frameId": "认知_20260819_143022"
+}
+```
+
+**2. 补全记忆（填内容）**
+
+拿到 `frameId` 后，调用 `save_memory` 补全：
+
+```
+mcp__WangdefaMemory__save_memory 好的，已记录你的偏好 认知_20260819_143022 completed
+```
+
+返回示例：
+```json
+{
+  "success": true,
+  "message": "记忆已补全并保存，cardId: 认知_20260819_143022，状态: completed"
+}
+```
+
+**3. 查询记忆**
+
+下次对话时，记忆体会自动检索相关记忆：
+
+```
+mcp__WangdefaMemory__process_message 写代码时要注意什么
+```
+
+如果命中，返回的 `hasMemory` 为 `true`，`memory` 字段包含摘要和标签。
+
+### 状态说明
+
+| 状态 | 含义 |
+|------|------|
+| `pending` | 框架已建，内容待补全 |
+| `completed` | 已补全，可被检索 |
+| `interrupted` | 补全中断 |
+| `failed` | 补全失败 |
+
+---
+
 ## 🔌 上游系统需要做什么
 
 记忆体不包含 LLM 调用，你需要在上游系统（或 Agent）中完成语义提取：
@@ -246,7 +336,7 @@ await memory.SinkAsync(
 
 ---
 
-## 🚀 快速开始
+## 🚀 快速开始（.NET 开发者）
 
 ### 1. 实现 IChatService
 
@@ -326,21 +416,13 @@ if (result != null)
 
 ---
 
-## 📦 安装
-
-### 从源码构建
-
-```bash
-git clone https://github.com/yourname/Wangdefa.Memory.git
-cd Wangdefa.Memory
-dotnet build
-```
-
-### NuGet（即将支持）
+## 📦 NuGet 安装
 
 ```bash
 dotnet add package Wangdefa.Memory
 ```
+
+> 如果你使用的是 DSH，请参考上方 [DSH 插件使用](#-dsh-插件使用) 章节。
 
 ---
 
@@ -370,13 +452,7 @@ dotnet add package Wangdefa.Memory
 
 ## 📄 更新说明
 
-### v0.2.1 (2026-08-19)
-
-- A线 增加近期记忆参考：调用时自动注入最近10张认知卡摘要和标签
-- `IntentAnalyzer` 支持从指定目录读取认知卡
-- 优化标签提取的上下文准确性
-
-### v0.2.0 (2026-08-19)
+### v1.1.0 (2026-08-19)
 
 - 完成 MCP 适配，支持通过 MCP 协议接入 DSH
 - 新增 `ProcessMessage`、`SaveMemory` 两个 MCP 工具
@@ -389,6 +465,9 @@ dotnet add package Wangdefa.Memory
 - 简化解析器逻辑，只取 `structured_tags[].tag`
 - C线 补全后更新特征统计，提高 `completed` 卡片检索权重
 - 检索只返回 `completed` 状态卡片，过滤 `pending` 空卡
+- A线 增加近期记忆参考：调用时自动注入最近10张认知卡摘要和标签
+- `IntentAnalyzer` 支持从指定目录读取认知卡
+- 优化标签提取的上下文准确性
 
 ---
 
