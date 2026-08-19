@@ -4,7 +4,7 @@
 ## 改动位置
 
 1. **核心特性**：新增 `A线近期记忆参考` 一行
-2. **更新说明**：底部新增 `v0.2.1 更新说明`
+2. **更新说明**：底部新增 `v1.1.0 更新说明`
 
 
 ## 完整 README.md
@@ -16,7 +16,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
-[![NuGet](https://img.shields.io/badge/NuGet-v0.2.0-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
+[![NuGet](https://img.shields.io/badge/NuGet-v1.1.0-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
 
 ---
 
@@ -370,13 +370,7 @@ dotnet add package Wangdefa.Memory
 
 ## 📄 更新说明
 
-### v0.2.1 (2026-08-19)
-
-- A线 增加近期记忆参考：调用时自动注入最近10张认知卡摘要和标签
-- `IntentAnalyzer` 支持从指定目录读取认知卡
-- 优化标签提取的上下文准确性
-
-### v0.2.0 (2026-08-19)
+### v1.1.0 (2026-08-19)
 
 - 完成 MCP 适配，支持通过 MCP 协议接入 DSH
 - 新增 `ProcessMessage`、`SaveMemory` 两个 MCP 工具
@@ -389,6 +383,9 @@ dotnet add package Wangdefa.Memory
 - 简化解析器逻辑，只取 `structured_tags[].tag`
 - C线 补全后更新特征统计，提高 `completed` 卡片检索权重
 - 检索只返回 `completed` 状态卡片，过滤 `pending` 空卡
+- A线 增加近期记忆参考：调用时自动注入最近10张认知卡摘要和标签
+- `IntentAnalyzer` 支持从指定目录读取认知卡
+- 优化标签提取的上下文准确性
 
 ---
 
