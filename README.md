@@ -1,5 +1,4 @@
 
-
 ```markdown
 # Wangdefa.Memory
 
@@ -33,6 +32,7 @@ Wangdefa.Memory 选择了无向量记忆体方向（不排除未来有弱向量�
 | **五层记忆架构** | 认知层 / 特征推演 / 思考层 / 阅历层 / 传递层 |
 | **特征推演引擎** | 标签池 + 密码簿 + 特征统计 + 时间衰减，让记忆通过认知驱动 |
 | **两阶段写入** | 先写框架（pending），后补全（completed），支持状态标记 |
+| **自我迭代** | 权重衰减 + 定期清理 + 标签演化，高频记忆自然沉淀，低频记忆自动遗忘 |
 | **偏好闭环** | 用户反馈自动转化为偏好，持续学习 |
 | **意图驱动检索** | 根据意图决定记忆注入深度（shallow / medium / deep） |
 | **标签演化** | 合并 / 分裂 / 弃用，标签自动优化 |
@@ -40,7 +40,166 @@ Wangdefa.Memory 选择了无向量记忆体方向（不排除未来有弱向量�
 | **轻量依赖** | 仅依赖 SQLite + System.Text.Json |
 | **MCP 适配** | 支持通过 MCP 协议接入 DSH，提供 ProcessMessage / SaveMemory 工具 |
 | **A线近期记忆参考** | 意图分析时自动注入最近10张认知卡摘要和标签，提升标签提取准确性 |
-| **自我迭代** | 权重衰减 + 定期清理 + 标签演化，高频记忆自然沉淀，低频记忆自动遗忘 |
+
+---
+
+## 📦 NuGet 安装
+
+```bash
+dotnet add package Wangdefa.Memory
+```
+
+---
+
+## 🔌 DSH 插件使用
+
+如果你使用的是 DeepSeek Harness（DSH），可以直接将 Wangdefa.Memory 作为 MCP 插件接入。
+
+### 安装
+
+**方式一：从 GitHub 安装（推荐）**
+
+```bash
+dsh plugin add github:你的用户名/WangdefaMemory
+```
+
+**方式二：本地安装**
+
+```bash
+git clone https://github.com/你的用户名/WangdefaMemory.git
+cd WangdefaMemory
+dotnet build -c Release
+dsh plugin add ./WangdefaMemory.MCP
+```
+
+### 配置
+
+在 DSH 的 `cordis.patch.yml` 中配置 API Key：
+
+```yaml
+- insert:
+    - id: mcp-wangdefaMemory
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: WangdefaMemory
+        transport: stdio
+        command: "dotnet"
+        args:
+          - "exec"
+          - "<你的路径>/WangdefaMemory.MCP/bin/Release/net10.0/WangdefaMemory.MCP.dll"
+        cwd: "<你的路径>/WangdefaMemory.MCP"
+        env:
+          DEEPSEEK_API_KEY: '${DEEPSEEK_API_KEY}'
+```
+
+### 使用
+
+在 DSH 对话中调用 MCP 工具：
+
+**1. 处理用户消息（写框架）**
+
+```
+mcp__WangdefaMemory__process_message 帮我记录一下：我喜欢用简洁的代码风格
+```
+
+返回示例：
+```json
+{
+  "enrichedInput": "...",
+  "intent": "闲聊",
+  "hasMemory": false,
+  "frameId": "认知_20260819_143022"
+}
+```
+
+**2. 补全记忆（填内容）**
+
+拿到 `frameId` 后，调用 `save_memory` 补全：
+
+```
+mcp__WangdefaMemory__save_memory 好的，已记录你的偏好 认知_20260819_143022 completed
+```
+
+返回示例：
+```json
+{
+  "success": true,
+  "message": "记忆已补全并保存，cardId: 认知_20260819_143022，状态: completed"
+}
+```
+
+**3. 查询记忆**
+
+下次对话时，记忆体会自动检索相关记忆：
+
+```
+mcp__WangdefaMemory__process_message 写代码时要注意什么
+```
+
+如果命中，返回的 `hasMemory` 为 `true`，`memory` 字段包含摘要和标签。
+
+### 状态说明
+
+| 状态 | 含义 |
+|------|------|
+| `pending` | 框架已建，内容待补全 |
+| `completed` | 已补全，可被检索 |
+| `interrupted` | 补全中断 |
+| `failed` | 补全失败 |
+
+---
+
+## 🚀 快速开始（.NET 开发者）
+
+### 1. 初始化记忆体
+
+```csharp
+using Wangdefa.AgentMemory;
+using Wangdefa.AgentMemory.Models;
+using Wangdefa.Contracts;
+
+// 如果不需要内置 A线，可传入 null 或 Mock 实现
+var chatService = new MyChatService();
+var basePath = Path.Combine(Directory.GetCurrentDirectory(), "memory");
+
+ServiceRegistry.Initialize(chatService, basePath);
+var memory = ServiceRegistry.GetWangdefaMemory();
+```
+
+### 2. 写入记忆（两阶段）
+
+```csharp
+// 阶段一：写框架（自动提取标签）
+var frameId = await memory.WriteMemoryFrame(
+    topicId: "demo",
+    userInput: "我喜欢用简洁的风格写代码",
+    perception: new PerceptionModel { Scene = "工作" },
+    tags: new List<string> { "代码风格", "简洁" },  // 可传空，由 A线 自动提取
+    route: "shallow"
+);
+
+// 阶段二：补全
+await memory.CompleteMemory(
+    cardId: frameId,
+    agentResponse: "好的，已记录你的偏好",
+    status: "completed"
+);
+```
+
+### 3. 查询记忆
+
+```csharp
+// 不传 semanticTags 时，记忆体自动调用 A线 提取标签
+var result = await memory.CognitiveMatch(
+    input: "写代码时要注意什么",
+    semanticTags: null  // 自动提取
+);
+
+if (result != null)
+{
+    Console.WriteLine($"匹配到记忆: {result.Summary}");
+}
+```
 
 ---
 
@@ -56,29 +215,18 @@ Wangdefa.Memory 选择了无向量记忆体方向（不排除未来有弱向量�
 | **密码簿（PasswordBook）** | code → 卡片ID 列表 | "这个标签关联了哪些卡片？" |
 | **特征统计（FeatureStats）** | 每张卡片 → 它有哪些标签 | "这张卡片有哪些标签？" |
 
-
-推演流程
-用户输入 → 提取标签 → 查标签池拿到 code → 查密码簿拿到卡片ID → 通过特征池确认卡片有哪些标签 → 多轮拓展推演关联→ 计算匹配强度
+推演流程：
+用户输入 → 提取标签 → 查标签池拿到 code → 查密码簿拿到卡片ID → 通过特征池确认卡片有哪些标签 → 多轮拓展推演关联 → 计算匹配强度
 
 ### 匹配流程
 
 1. **精准匹配**：用 `tag + dimension` 查标签池，直接命中 `code`
-2. **近义匹配**：用 `synonyms` 扩展匹配范围
+2. **近义匹配**：用 `synonyms` 扩展匹配范围（作为兜底）
 3. **密码簿查询**：用 `code` 查密码簿，拿到卡片ID列表
 4. **特征池匹配**：用卡片ID查特征池，确认卡片实际包含哪些标签，计算匹配强度
 5. **时间衰减**：匹配强度 × `exp(-0.05 × 天数)`，新记忆优先
 6. **状态过滤**：只返回 `completed` 状态的卡片，过滤 `pending` 空卡
 7. **排序返回**：按最终权重降序返回 TopN
-
-### 调用方式
-
-```csharp
-// 内部自动调用特征推演，你只需要传标签
-var result = await memory.CognitiveMatch(
-    input: "写代码时要注意什么",
-    semanticTags: new[] { "代码风格" }
-);
-```
 
 ---
 
@@ -199,231 +347,11 @@ Agent 生成回复 → 调用 SaveMemory(frameId, agentResponse)
 ### 查询流程
 
 ```
-用户输入 → A线 提取标签 → 中间件
+用户输入 → A线 提取标签（参考最近 10 张认知卡）→ 中间件
     ├── 特征推演检索（标签匹配 + 时间衰减）
     ├── 状态过滤（只返回 completed 卡片）
     └── 返回 CognitiveMatchResult
 ```
-
----
-
-## 🔌 DSH 插件使用
-
-如果你使用的是 DeepSeek Harness（DSH），可以直接将 Wangdefa.Memory 作为 MCP 插件接入。
-
-### 安装
-
-**方式一：从 GitHub 安装（推荐）**
-
-```bash
-dsh plugin add github:你的用户名/WangdefaMemory
-```
-
-**方式二：本地安装**
-
-```bash
-git clone https://github.com/你的用户名/WangdefaMemory.git
-cd WangdefaMemory
-dotnet build -c Release
-dsh plugin add ./WangdefaMemory.MCP
-```
-
-### 配置
-
-在 DSH 的 `cordis.patch.yml` 中配置 API Key：
-
-```yaml
-- insert:
-    - id: mcp-wangdefaMemory
-      name: '@deepseek-ai/dsh-mcp-client'
-      config:
-        serverName: WangdefaMemory
-        transport: stdio
-        command: "dotnet"
-        args:
-          - "exec"
-          - "<你的路径>/WangdefaMemory.MCP/bin/Release/net10.0/WangdefaMemory.MCP.dll"
-        cwd: "<你的路径>/WangdefaMemory.MCP"
-        env:
-          DEEPSEEK_API_KEY: '${DEEPSEEK_API_KEY}'
-```
-
-### 使用
-
-在 DSH 对话中调用 MCP 工具：
-
-**1. 处理用户消息（写框架）**
-
-```
-mcp__WangdefaMemory__process_message 帮我记录一下：我喜欢用简洁的代码风格
-```
-
-返回示例：
-```json
-{
-  "enrichedInput": "...",
-  "intent": "闲聊",
-  "hasMemory": false,
-  "frameId": "认知_20260819_143022"
-}
-```
-
-**2. 补全记忆（填内容）**
-
-拿到 `frameId` 后，调用 `save_memory` 补全：
-
-```
-mcp__WangdefaMemory__save_memory 好的，已记录你的偏好 认知_20260819_143022 completed
-```
-
-返回示例：
-```json
-{
-  "success": true,
-  "message": "记忆已补全并保存，cardId: 认知_20260819_143022，状态: completed"
-}
-```
-
-**3. 查询记忆**
-
-下次对话时，记忆体会自动检索相关记忆：
-
-```
-mcp__WangdefaMemory__process_message 写代码时要注意什么
-```
-
-如果命中，返回的 `hasMemory` 为 `true`，`memory` 字段包含摘要和标签。
-
-### 状态说明
-
-| 状态 | 含义 |
-|------|------|
-| `pending` | 框架已建，内容待补全 |
-| `completed` | 已补全，可被检索 |
-| `interrupted` | 补全中断 |
-| `failed` | 补全失败 |
-
----
-
-## 🔌 上游系统需要做什么
-
-记忆体不包含 LLM 调用，你需要在上游系统（或 Agent）中完成语义提取：
-
-1. **用户输入 → 调用 LLM**
-2. **LLM 提取结构化标签**：从用户输入中提取 `tag`、`dimension`、`definition`、`synonyms`
-3. **将标签传给记忆体**：调用 `SinkAsync()` 写入，或 `CognitiveMatch()` 查询
-4. **记忆体只负责推演、查询、写入，具体接入用法看个人。
-
-```csharp
-// 上游系统示例
-var userInput = "帮我规划开源项目";
-
-// 1. 调用 LLM 提取标签（你自己实现）
-var tags = await YourLLM.ExtractTags(userInput);
-// tags = [{ tag: "规划", dimension: "任务", synonyms: ["计划", "筹备"] }]
-
-// 2. 传给记忆体
-await memory.SinkAsync(
-    userInput: userInput,
-    agentResponse: agentResponse,
-    topicId: topicId,
-    perception: perception,
-    summary: summary,
-    overview: overview,
-    tags: tags,
-    route: "shallow"
-);
-```
-
----
-
-## 🚀 快速开始（.NET 开发者）
-
-### 1. 实现 IChatService
-
-记忆体需要调用模型来做摘要分析和学习，你需要实现这个接口：
-
-```csharp
-using Wangdefa.Contracts;
-
-public class MyChatService : IChatService
-{
-    public async Task<string> ChatAsync(string prompt)
-    {
-        // 调用你的模型（OpenAI / Ollama / DeepSeek 等）
-        return await YourModel.CallAsync(prompt);
-    }
-
-    public void SetThink(bool enabled)
-    {
-        // 可选：设置思考模式
-    }
-
-    public bool IsDeepSeekThinkingMode()
-    {
-        return false;  // 根据你的模型返回
-    }
-}
-```
-
-### 2. 初始化记忆体
-
-```csharp
-using Wangdefa.AgentMemory;
-using Wangdefa.AgentMemory.Models;
-using Wangdefa.Contracts;
-
-var chatService = new MyChatService();
-var basePath = Path.Combine(Directory.GetCurrentDirectory(), "memory");
-
-ServiceRegistry.Initialize(chatService, basePath);
-var memory = ServiceRegistry.GetWangdefaMemory();
-```
-
-### 3. 写入记忆（两阶段）
-
-```csharp
-// 阶段一：写框架
-var frameId = await memory.WriteMemoryFrame(
-    topicId: "demo",
-    userInput: "我喜欢用简洁的风格写代码",
-    perception: new PerceptionModel { Scene = "工作" },
-    tags: new List<string> { "代码风格", "简洁" },
-    route: "shallow"
-);
-
-// 阶段二：补全
-await memory.CompleteMemory(
-    cardId: frameId,
-    agentResponse: "好的，已记录你的偏好",
-    status: "completed"
-);
-```
-
-### 4. 查询记忆
-
-```csharp
-var result = await memory.CognitiveMatch(
-    input: "写代码时要注意什么",
-    semanticTags: new[] { "代码风格" }
-);
-
-if (result != null)
-{
-    Console.WriteLine($"匹配到记忆: {result.Summary}");
-    // 输出：用户偏好简洁代码风格
-}
-```
-
----
-
-## 📦 NuGet 安装
-
-```bash
-dotnet add package Wangdefa.Memory
-```
-
-> 如果你使用的是 DSH，请参考上方 [DSH 插件使用](#-dsh-插件使用) 章节。
 
 ---
 
@@ -433,7 +361,7 @@ dotnet add package Wangdefa.Memory
 
 | 方法 | 说明 |
 |------|------|
-| `CognitiveMatch()` | 根据语义标签匹配记忆 |
+| `CognitiveMatch()` | 根据语义标签匹配记忆（`semanticTags` 可空，空则自动提取） |
 | `CognitiveMatchByCodes()` | 根据标签 code 匹配记忆 |
 | `CognitiveMatchTopN()` | 匹配多条记忆，返回 TopN |
 | `WriteMemoryFrame()` | 写框架（状态 pending），返回 frameId |
@@ -495,3 +423,6 @@ Apache License 2.0 © 2026 Wangdefa Memory Contributors
 
 See [LICENSE](LICENSE) for details.
 ```
+
+---
+
