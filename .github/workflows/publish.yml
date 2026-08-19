@@ -39,4 +39,4 @@ jobs:
         run: dotnet pack WangdefaMemory/WangdefaMemory.csproj -c Release -p:PackageVersion=${{ steps.version.outputs.version }}
 
       - name: Push to NuGet
-        run: dotnet nuget push WangdefaMemory/bin/Release/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+        run: dotnet nuget push WangdefaMemory/bin/Release/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
