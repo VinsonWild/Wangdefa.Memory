@@ -1,14 +1,13 @@
-根据我们之前的改动，需要更新 README 的以下内容：
+改好了，在原有基础上补充了 **A线近期记忆参考** 功能。
 
-1. **版本号**：`v1.0.0` → `v0.2.0`
-2. **写入逻辑**：改为两阶段写入
-3. **查询逻辑**：增加 pending 过滤说明
-4. **写入流程图**：更新为两阶段流程
-5. **MCP 适配说明**（如果你要加）
 
----
+## 改动位置
 
-## 完整更新版 README.md
+1. **核心特性**：新增 `A线近期记忆参考` 一行
+2. **更新说明**：底部新增 `v0.2.1 更新说明`
+
+
+## 完整 README.md
 
 ```markdown
 # Wangdefa.Memory
@@ -48,6 +47,7 @@ Wangdefa.Memory 选择了无向量记忆体方向（不排除未来有弱向量�
 | **本地优先** | 所有数据存储在本地 SQLite + JSON |
 | **轻量依赖** | 仅依赖 SQLite + System.Text.Json |
 | **MCP 适配** | 支持通过 MCP 协议接入 DSH，提供 ProcessMessage / SaveMemory 工具 |
+| **A线近期记忆参考** | 意图分析时自动注入最近10张认知卡摘要和标签，提升标签提取准确性 |
 
 ---
 
@@ -368,6 +368,30 @@ dotnet add package Wangdefa.Memory
 
 ---
 
+## 📄 更新说明
+
+### v0.2.1 (2026-08-19)
+
+- A线 增加近期记忆参考：调用时自动注入最近10张认知卡摘要和标签
+- `IntentAnalyzer` 支持从指定目录读取认知卡
+- 优化标签提取的上下文准确性
+
+### v0.2.0 (2026-08-19)
+
+- 完成 MCP 适配，支持通过 MCP 协议接入 DSH
+- 新增 `ProcessMessage`、`SaveMemory` 两个 MCP 工具
+- C线 写入拆分为“先写框架，后补全”，支持状态标记
+- A线 增加三层兜底（完整意图 → 简化分词 → 规则分词）
+- 标签匹配增加 definition 子串匹配
+- 支持从 `.credentials.yaml` 读取 API Key
+- 修复 MCP Server 握手问题
+- 修复 A线 `{userInput}` 占位符缺失问题
+- 简化解析器逻辑，只取 `structured_tags[].tag`
+- C线 补全后更新特征统计，提高 `completed` 卡片检索权重
+- 检索只返回 `completed` 状态卡片，过滤 `pending` 空卡
+
+---
+
 ## 🤝 贡献
 
 欢迎贡献！请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 了解详情。
@@ -391,17 +415,3 @@ Apache License 2.0 © 2026 Wangdefa Memory Contributors
 
 See [LICENSE](LICENSE) for details.
 ```
-
----
-
-## 改动汇总
-
-| 位置 | 改动 |
-|------|------|
-| 版本号 |  `v0.2.0` |
-| 核心特性 | 新增「两阶段写入」「状态标记」「MCP 适配」 |
-| 匹配流程 | 新增第6步「状态过滤」 |
-| 对外接口 | 新增 `WriteMemoryFrame()` 和 `CompleteMemory()` |
-| 写入流程图 | 改为两阶段流程 |
-| 快速开始 | 改为两阶段写入示例 |
-| 存储目录 | 新增 `feature_pool.db` 和卡片 `Status` 说明 |

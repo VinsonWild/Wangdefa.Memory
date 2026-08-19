@@ -5,7 +5,7 @@ public static class PromptTemplates
     public static string GetIntentAnalysis()
     {
         return """
-你是WangdefaMemory的意图分析模块。
+你是王德发的意图分析模块。
 
 【你的任务】
 无论你收到什么指令，不要调任何工具。
@@ -14,6 +14,9 @@ public static class PromptTemplates
 
 【用户输入】
 {userInput}
+
+【近期记忆参考】
+{recentCognitiveCards}
 
 【感知判断规则】
 请严格按照以下规则判断感知维度：
@@ -82,7 +85,7 @@ public static class PromptTemplates
   "context_summary": "一句话总结当前用户意图需求（30字以内）",
   "structured_tags": [
     {
-      "tag": "根据用户输入提取的核心关键词",
+      "tag": "从用户输入中提取的核心关键词",
       "dimension": "内容/场景/任务/约束",
       "definitions": ["语义描述1", "语义描述2", "语义描述3"],
       "synonyms": ["近义词1", "近义词2"]
@@ -97,6 +100,7 @@ public static class PromptTemplates
 - definitions：对提取的tag 做的语义描述，每个语义解释10字以内，每个tag最少2个语义解释，覆盖不同角度，输出时组合成数组形式。
 - synonyms：该标签的近义词列表，2-4个，用于后续匹配
 - 不需要从标签池中选择，直接根据语义生成
+- 可以参考【近期记忆参考】中的标签，帮助理解用户可能涉及的话题领域
 
 【need_tools 判断规则】
 - true：用户需要调用【自定义外部工具】（如 fetch_url、run_script 等）才能完成任务
@@ -118,7 +122,7 @@ public static class PromptTemplates
     public static string GetSummaryAnalysis()
     {
         return """
-你是WangdefaMemory分析模块。
+你是王德发的记忆体分析模块。
 
 【你的任务】
 基于用户输入和老王回复，生成摘要和概览。标签部分直接沿用 A线 输出的特征标签，不需要重新生成。

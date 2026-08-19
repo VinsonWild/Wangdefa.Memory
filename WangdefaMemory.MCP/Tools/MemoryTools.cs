@@ -86,14 +86,16 @@ public class MemoryTools
 
     [McpServerTool]
     public static async Task<string> ProcessMessage(
-        [Description("用户输入的消息")] string input,
-        [Description("会话ID，用于隔离不同会话的记忆")] string? sessionId = null)
+    [Description("用户输入的消息")] string input,
+    [Description("会话ID，用于隔离不同会话的记忆")] string? sessionId = null)
     {
         try
         {
             EnsureInitialized();
 
-            var intentAnalyzer = new IntentAnalyzer(_chatService!);
+            var basePath = ServiceRegistry.GetBasePath();
+            var cognitiveRecordsPath = Path.Combine(basePath, "cognitive", "records");
+            var intentAnalyzer = new IntentAnalyzer(_chatService!, cognitiveRecordsPath);
             var middleware = new Middleware(_memory!);
             var pipeline = new MemoryPipeline(intentAnalyzer, middleware);
 

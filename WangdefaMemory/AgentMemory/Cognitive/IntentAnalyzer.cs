@@ -16,21 +16,27 @@ public class IntentAnalyzer
 {
     private readonly IChatService _chatService;
     private readonly string _instruction;
+    private readonly string _cognitiveRecordsPath;
 
-    public IntentAnalyzer(IChatService chatService)
+    public IntentAnalyzer(IChatService chatService, string cognitiveRecordsPath)
     {
         _chatService = chatService;
         _instruction = PromptTemplates.GetIntentAnalysis();
+        _cognitiveRecordsPath = cognitiveRecordsPath;
     }
 
     public async Task<IntentAnalysisResult> AnalyzeAsync(string input, string sessionId)
     {
         Console.WriteLine("[IntentAnalyzer] 1. 进入 A 线");
 
-        // ===== 第一层：完整意图分析 =====
-        var prompt = _instruction.Replace("{userInput}", input);
+        // ★ 获取最近 10 张认知卡摘要和标签
+        var recentCardsSummary = GetRecentCognitiveCardsSummary(10);
 
-        // ★ 调试日志：打印 prompt 末尾 500 字符，确认 {userInput} 是否被替换
+        // ===== 第一层：完整意图分析 =====
+        var prompt = _instruction
+            .Replace("{userInput}", input)
+            .Replace("{recentCognitiveCards}", recentCardsSummary);
+
         Console.WriteLine($"[IntentAnalyzer] Prompt 末尾 500 字符: {prompt.Substring(Math.Max(0, prompt.Length - 500))}");
 
         var reply = await _chatService.ChatAsync(prompt);
@@ -73,6 +79,59 @@ public class IntentAnalyzer
         defaultResult.ContextSummary = input.Length > 30 ? input.Substring(0, 30) : input;
         defaultResult.Intent = "查询";
         return defaultResult;
+    }
+
+    /// <summary>
+    /// 获取最近 N 张已完成认知卡的摘要和标签
+    /// </summary>
+    private string GetRecentCognitiveCardsSummary(int count = 10)
+    {
+        if (string.IsNullOrEmpty(_cognitiveRecordsPath) || !Directory.Exists(_cognitiveRecordsPath))
+        {
+            return "（无历史记忆）";
+        }
+
+        var files = Directory.GetFiles(_cognitiveRecordsPath, "认知_*.json")
+            .Select(f => new FileInfo(f))
+            .OrderByDescending(f => f.CreationTime)
+            .Take(count)
+            .ToList();
+
+        if (files.Count == 0)
+        {
+            return "（无历史记忆）";
+        }
+
+        var summaries = new List<string>();
+        var index = 1;
+
+        foreach (var file in files)
+        {
+            try
+            {
+                var json = File.ReadAllText(file.FullName);
+                var record = JsonSerializer.Deserialize<CognitiveRecordModel>(json);
+                if (record == null || record.Status != "completed") continue;
+
+                var tags = record.Insight?.ContentTags != null && record.Insight.ContentTags.Length > 0
+                    ? string.Join(", ", record.Insight.ContentTags)
+                    : "无标签";
+                var summary = !string.IsNullOrEmpty(record.Insight?.Summary)
+                    ? record.Insight.Summary
+                    : "无摘要";
+
+                summaries.Add($"{index}. 摘要：{summary} | 标签：{tags}");
+                index++;
+
+                if (index > count) break;
+            }
+            catch
+            {
+                // 跳过损坏文件
+            }
+        }
+
+        return summaries.Count > 0 ? string.Join("\n", summaries) : "（无历史记忆）";
     }
 
     /// <summary>
