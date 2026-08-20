@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 
 		<PackageId>Wangdefa.Memory</PackageId>
-		<Version>1.1.1</Version>
+		<Version>1.1.2</Version>
 		<Authors>wangdefa</Authors>
 		<Description>本地优先的 Agent 五层记忆体组件</Description>
 		<PackageTags>agent;memory;ai;local;sqlite</PackageTags>
