@@ -35,24 +35,15 @@ jobs:
           VERSION="${VERSION#v}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      # ==========================
-      # 1. 打 NuGet 包
-      # ==========================
       - name: Pack NuGet
         run: dotnet pack WangdefaMemory/WangdefaMemory.csproj -c Release -p:PackageVersion=${{ steps.version.outputs.version }}
 
       - name: Push NuGet
-        run: dotnet nuget push WangdefaMemory/bin/Release/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }} --skip-duplicate
+        run: dotnet nuget push WangdefaMemory/bin/Release/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
 
-      # ==========================
-      # 2. 编译 MCP 项目
-      # ==========================
       - name: Build MCP
         run: dotnet build WangdefaMemory.MCP/WangdefaMemory.MCP.csproj -c Release
 
-      # ==========================
-      # 3. 打包 ZIP（给 DSH 用户）
-      # ==========================
       - name: Pack ZIP
         run: |
           mkdir -p release
@@ -61,9 +52,6 @@ jobs:
           cp WangdefaMemory.MCP/bin/Release/net10.0/*.runtimeconfig.json release/
           cd release && zip -r ../WangdefaMemory.MCP.zip . && cd ..
 
-      # ==========================
-      # 4. 上传 ZIP 到 Release（只有 release 事件才触发）
-      # ==========================
       - name: Upload ZIP to Release
         if: github.event_name == 'release'
         uses: actions/upload-release-asset@v1
