@@ -1,0 +1,12 @@
+- insert:
+    - id: mcp-wangdefaMemory
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: WangdefaMemory
+        transport: stdio
+        command: "dotnet"
+        args:
+          - "exec"
+          - "${WANGDEFA_MEMORY_PATH}/WangdefaMemory.MCP.dll"
+        env:
+          DEEPSEEK_API_KEY: !!js process.env.DEEPSEEK_API_KEY

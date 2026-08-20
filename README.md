@@ -55,12 +55,19 @@ dotnet add package Wangdefa.Memory
 
 如果你使用的是 DeepSeek Harness（DSH），可以直接将 Wangdefa.Memory 作为 MCP 插件接入。
 
+### 前置条件
+
+- 已安装 [.NET 10.0](https://dotnet.microsoft.com/download) 或更高版本
+- 已配置 `DEEPSEEK_API_KEY` 环境变量（DeepSeek API Key）
+- （可选）如需自定义安装路径，可设置 `WANGDEFA_MEMORY_PATH` 环境变量
+
 ### 安装
 
 **方式一：从 GitHub 安装（推荐）**
 
 ```bash
-dsh plugin add github:你的用户名/WangdefaMemory
+dsh plugin add github:VinsonWild/WangdefaMemory
+
 ```
 
 **方式二：本地安装**

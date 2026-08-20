@@ -1,0 +1,11 @@
+*.sln
+*.csproj
+*.cs
+bin/
+obj/
+.git/
+.github/
+.vs/
+memory/
+README.md
+LICENSE
