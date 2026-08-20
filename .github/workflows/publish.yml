@@ -35,15 +35,15 @@ jobs:
           VERSION="${VERSION#v}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Pack NuGet
-        run: dotnet pack WangdefaMemory/WangdefaMemory.csproj -c Release -p:PackageVersion=${{ steps.version.outputs.version }}
-
-      - name: Push NuGet
-        run: dotnet nuget push WangdefaMemory/bin/Release/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
-
+      # ==========================
+      # 1. 编译 MCP 项目
+      # ==========================
       - name: Build MCP
         run: dotnet build WangdefaMemory.MCP/WangdefaMemory.MCP.csproj -c Release
 
+      # ==========================
+      # 2. 打包 ZIP（给 DSH 用户）
+      # ==========================
       - name: Pack ZIP
         run: |
           mkdir -p release
@@ -52,11 +52,22 @@ jobs:
           cp WangdefaMemory.MCP/bin/Release/net10.0/*.runtimeconfig.json release/
           cd release && zip -r ../WangdefaMemory.MCP.zip . && cd ..
 
+      # ==========================
+      # 3. 上传 ZIP 到 Release
+      # ==========================
       - name: Upload ZIP to Release
         if: github.event_name == 'release'
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./WangdefaMemory.MCP.zip
-          asset_name: WangdefaMemory.MCP.zip
-          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ github.event.release.tag_name }} WangdefaMemory.MCP.zip --repo ${{ github.repository }}
+
+      # ==========================
+      # 4. 打 NuGet 包（最后）
+      # ==========================
+      - name: Pack NuGet
+        run: dotnet pack WangdefaMemory/WangdefaMemory.csproj -c Release -p:PackageVersion=${{ steps.version.outputs.version }}
+
+      - name: Push NuGet
+        run: dotnet nuget push WangdefaMemory/bin/Release/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
+        continue-on-error: true
