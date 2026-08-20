@@ -31,36 +31,24 @@ public class CognitiveReader
         _knowledgeStore = knowledgeStore;
     }
 
-    /// <summary>
-    /// 匹配单条（默认用 input 分词检索）
-    /// </summary>
     public async Task<CognitiveMatchResultModel?> Match(string input, List<string>? history = null, string? topicId = null)
     {
         var results = await MatchTopN(input, history ?? new List<string>(), topicId, 1);
         return results.FirstOrDefault();
     }
 
-    /// <summary>
-    /// 匹配单条（用语义标签检索，由 A 线 semantic_tags 驱动）
-    /// </summary>
     public async Task<CognitiveMatchResultModel?> Match(string input, string[] semanticTags, List<string>? history = null, string? topicId = null)
     {
         var results = await MatchTopN(input, semanticTags, history ?? new List<string>(), topicId, 1);
         return results.FirstOrDefault();
     }
 
-    /// <summary>
-    /// 匹配单条（直接用 code 列表检索）
-    /// </summary>
     public async Task<CognitiveMatchResultModel?> MatchByCodes(List<string> codes, string? topicId = null)
     {
         var results = await MatchTopNByCodes(codes, topicId, 1);
         return results.FirstOrDefault();
     }
 
-    /// <summary>
-    /// 匹配多条（默认用 input 分词检索）
-    /// </summary>
     public async Task<List<CognitiveMatchResultModel>> MatchTopN(
         string input,
         List<string> history,
@@ -70,9 +58,6 @@ public class CognitiveReader
         return await MatchTopN(input, null, history, topicId, topN);
     }
 
-    /// <summary>
-    /// 匹配多条（用语义标签检索）
-    /// </summary>
     public async Task<List<CognitiveMatchResultModel>> MatchTopN(
         string input,
         string[]? semanticTags,
@@ -114,9 +99,6 @@ public class CognitiveReader
         return await MatchTopNByCodes(searchCodes, topicId, topN);
     }
 
-    /// <summary>
-    /// 匹配多条（直接用 code 列表检索）
-    /// </summary>
     public async Task<List<CognitiveMatchResultModel>> MatchTopNByCodes(
         List<string> codes,
         string? topicId = null,
@@ -140,12 +122,17 @@ public class CognitiveReader
             return new List<CognitiveMatchResultModel>();
         }
 
+        // ★ 批量并行加载卡片，减少 IO 等待
+        var loadTasks = featureResults.Select(fr => LoadCognitiveRecord(fr.CardId));
+        var loadedRecords = await Task.WhenAll(loadTasks);
+
         var results = new List<CognitiveMatchResultModel>();
         var now = DateTime.Now;
 
-        foreach (var fr in featureResults)
+        for (int i = 0; i < featureResults.Count; i++)
         {
-            var record = await LoadCognitiveRecord(fr.CardId);
+            var fr = featureResults[i];
+            var record = loadedRecords[i];
             if (record == null) continue;
 
             // ★ 过滤：只返回已补全的卡片，跳过 pending 空卡

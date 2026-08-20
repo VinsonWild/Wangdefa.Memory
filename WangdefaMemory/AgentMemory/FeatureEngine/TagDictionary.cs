@@ -136,6 +136,9 @@ public class TagDictionary
         return entry?.Code;
     }
 
+    /// <summary>
+    /// 获取标签 code（只读，不新增）
+    /// </summary>
     public string? GetCode(string tag, string dimension)
     {
         if (_tagCache.TryGetValue(tag, out var cached))
@@ -164,7 +167,8 @@ public class TagDictionary
         var fallback = LoadFromDb(tag);
         if (fallback != null) return fallback.Code;
 
-        return Add(tag, "content", definition: "", dimension: dimension, source: "auto").Code;
+        // ★ 不自动新增，返回 null
+        return null;
     }
 
     /// <summary>
@@ -187,7 +191,6 @@ public class TagDictionary
             {
                 if (string.IsNullOrEmpty(def)) continue;
 
-                // 子串匹配：不区分大小写
                 if (entry.Definition.Contains(def, StringComparison.OrdinalIgnoreCase) ||
                     def.Contains(entry.Definition, StringComparison.OrdinalIgnoreCase))
                 {

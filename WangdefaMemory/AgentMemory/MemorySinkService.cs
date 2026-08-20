@@ -62,138 +62,146 @@ public class MemorySinkService : IMemorySinkService
         Dictionary<string, string>? missingTagDefinitions = null,
         List<PreferenceEntry>? preferences = null)
     {
-        var recordId = $"认知_{DateTime.Now:yyyyMMdd_HHmmss}";
-        var thinkingRecordId = $"记录_{DateTime.Now:yyyyMMdd_HHmmss}";
-
-        var insight = new InsightModel
+        try
         {
-            ContentTags = tags.ToArray(),
-            RelationTags = new List<RelationTag>(),
-            Summary = summary,
-            Preferences = preferences ?? new List<PreferenceEntry>()
-        };
+            var recordId = $"认知_{DateTime.Now:yyyyMMdd_HHmmss}";
+            var thinkingRecordId = $"记录_{DateTime.Now:yyyyMMdd_HHmmss}";
 
-        var cognitiveRecord = new CognitiveRecordModel
-        {
-            Id = recordId,
-            Perception = perception,
-            Insight = insight,
-            RecordId = thinkingRecordId,
-            CreatedAt = DateTime.Now,
-            Weight = 1.0,
-            LastAccessAt = DateTime.Now,
-            SourcePath = sourcePath ?? "",
-            Status = "completed"
-        };
-
-        var cognitivePath = Path.Combine(_recordsPath, $"{recordId}.json");
-        var cognitiveJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(cognitivePath, cognitiveJson);
-
-        if (tags.Count > 0)
-        {
-            _featureEngine.TagCard(recordId, tags.ToList(), "cognitive", missingTagDefinitions);
-            Console.WriteLine($"✅ 特征推演已更新: {recordId}");
-        }
-
-        var diversionIndex = new DiversionIndexModel
-        {
-            CognitiveRecordId = recordId,
-            EventType = string.IsNullOrEmpty(sourcePath) ? "chat" : "file",
-            TopicId = topicId,
-            SummaryPointer = $"knowledge/{topicId}/摘要_{DateTime.Now:yyyyMMdd_HHmmss}.json",
-            OverviewPointer = $"knowledge/{topicId}/概览_{DateTime.Now:yyyyMMdd_HHmmss}.json",
-            FullTextPointer = sourcePath ?? "",
-            FullTextType = string.IsNullOrEmpty(sourcePath) ? "db" : "file",
-            CreatedAt = DateTime.Now,
-            LastAccessAt = DateTime.Now
-        };
-
-        await _thinkingStore.SaveIndex(diversionIndex, topicId);
-
-        cognitiveRecord.RecordId = thinkingRecordId;
-        var updatedJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(cognitivePath, updatedJson);
-
-        if (!string.IsNullOrEmpty(overview))
-        {
-            var overviewModel = new OverviewModel
+            var insight = new InsightModel
             {
-                Id = $"概览_{DateTime.Now:yyyyMMdd_HHmmss}",
-                TopicId = topicId,
-                CognitiveRecordId = recordId,
-                Text = overview,
-                ContentType = "chat",
-                WordCount = overview.Length,
-                Confidence = 0.8,
-                CreatedAt = DateTime.Now
+                ContentTags = tags.ToArray(),
+                RelationTags = new List<RelationTag>(),
+                Summary = summary,
+                Preferences = preferences ?? new List<PreferenceEntry>()
             };
 
-            var overviewPath = Path.Combine(_knowledgePath, topicId, $"{overviewModel.Id}.json");
-            Directory.CreateDirectory(Path.GetDirectoryName(overviewPath)!);
-            await File.WriteAllTextAsync(overviewPath, JsonSerializer.Serialize(overviewModel, new JsonSerializerOptions { WriteIndented = true }));
+            var cognitiveRecord = new CognitiveRecordModel
+            {
+                Id = recordId,
+                Perception = perception,
+                Insight = insight,
+                RecordId = thinkingRecordId,
+                CreatedAt = DateTime.Now,
+                Weight = 1.0,
+                LastAccessAt = DateTime.Now,
+                SourcePath = sourcePath ?? "",
+                Status = "completed"
+            };
+
+            var cognitivePath = Path.Combine(_recordsPath, $"{recordId}.json");
+            var cognitiveJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(cognitivePath, cognitiveJson);
+
+            if (tags.Count > 0)
+            {
+                _featureEngine.TagCard(recordId, tags.ToList(), "cognitive", missingTagDefinitions);
+                Console.WriteLine($"✅ 特征推演已更新: {recordId}");
+            }
+
+            var diversionIndex = new DiversionIndexModel
+            {
+                CognitiveRecordId = recordId,
+                EventType = string.IsNullOrEmpty(sourcePath) ? "chat" : "file",
+                TopicId = topicId,
+                SummaryPointer = $"knowledge/{topicId}/摘要_{DateTime.Now:yyyyMMdd_HHmmss}.json",
+                OverviewPointer = $"knowledge/{topicId}/概览_{DateTime.Now:yyyyMMdd_HHmmss}.json",
+                FullTextPointer = sourcePath ?? "",
+                FullTextType = string.IsNullOrEmpty(sourcePath) ? "db" : "file",
+                CreatedAt = DateTime.Now,
+                LastAccessAt = DateTime.Now
+            };
+
+            await _thinkingStore.SaveIndex(diversionIndex, topicId);
+
+            cognitiveRecord.RecordId = thinkingRecordId;
+            var updatedJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(cognitivePath, updatedJson);
+
+            if (!string.IsNullOrEmpty(overview))
+            {
+                var overviewModel = new OverviewModel
+                {
+                    Id = $"概览_{DateTime.Now:yyyyMMdd_HHmmss}",
+                    TopicId = topicId,
+                    CognitiveRecordId = recordId,
+                    Text = overview,
+                    ContentType = "chat",
+                    WordCount = overview.Length,
+                    Confidence = 0.8,
+                    CreatedAt = DateTime.Now
+                };
+
+                var overviewPath = Path.Combine(_knowledgePath, topicId, $"{overviewModel.Id}.json");
+                Directory.CreateDirectory(Path.GetDirectoryName(overviewPath)!);
+                await File.WriteAllTextAsync(overviewPath, JsonSerializer.Serialize(overviewModel, new JsonSerializerOptions { WriteIndented = true }));
+            }
+
+            var perceptionJson = JsonSerializer.Serialize(perception);
+            var writeResult = await _sqliteTools.WriteRecord(
+                userInput,
+                agentResponse,
+                topicId,
+                string.Join(",", tags),
+                summary,
+                0.8,
+                perceptionJson,
+                route,
+                overview
+            );
+            Console.WriteLine(writeResult);
+
+            var evt = new EventModel
+            {
+                EventId = $"事件_{DateTime.Now:yyyyMMdd_HHmmss}",
+                EventType = string.IsNullOrEmpty(sourcePath) ? "chat" : "file",
+                EventLevel = "point",
+                Mode = "wangdefa_full",
+                TopicId = topicId,
+                Timestamp = DateTime.Now,
+                Perception = perception,
+                Data = new EventData
+                {
+                    UserInput = userInput,
+                    AgentResponse = agentResponse,
+                    FilePath = sourcePath,
+                    FileName = !string.IsNullOrEmpty(sourcePath) ? Path.GetFileName(sourcePath) : null,
+                    FileAction = sourceType == "file" ? "upload" : null
+                },
+                Context = new EventContext
+                {
+                    Source = "agent"
+                },
+                Result = new EventResult
+                {
+                    Status = "completed",
+                    Summary = summary,
+                    Route = route,
+                    DurationMs = null
+                },
+                CognitiveRecordId = recordId,
+                FeatureTags = tags.ToArray(),
+            };
+
+            await _eventStore.SaveAsync(evt);
+            Console.WriteLine($"✅ 事件已存储: {evt.EventId}");
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await TriggerLearningAsync(evt);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️ 思考层学习失败: {ex.Message}");
+                }
+            });
         }
-
-        var perceptionJson = JsonSerializer.Serialize(perception);
-        var writeResult = await _sqliteTools.WriteRecord(
-            userInput,
-            agentResponse,
-            topicId,
-            string.Join(",", tags),
-            summary,
-            0.8,
-            perceptionJson,
-            route,
-            overview
-        );
-        Console.WriteLine(writeResult);
-
-        var evt = new EventModel
+        catch (Exception ex)
         {
-            EventId = $"事件_{DateTime.Now:yyyyMMdd_HHmmss}",
-            EventType = string.IsNullOrEmpty(sourcePath) ? "chat" : "file",
-            EventLevel = "point",
-            Mode = "wangdefa_full",
-            TopicId = topicId,
-            Timestamp = DateTime.Now,
-            Perception = perception,
-            Data = new EventData
-            {
-                UserInput = userInput,
-                AgentResponse = agentResponse,
-                FilePath = sourcePath,
-                FileName = !string.IsNullOrEmpty(sourcePath) ? Path.GetFileName(sourcePath) : null,
-                FileAction = sourceType == "file" ? "upload" : null
-            },
-            Context = new EventContext
-            {
-                Source = "agent"
-            },
-            Result = new EventResult
-            {
-                Status = "completed",
-                Summary = summary,
-                Route = route,
-                DurationMs = null
-            },
-            CognitiveRecordId = recordId,
-            FeatureTags = tags.ToArray(),
-        };
-
-        await _eventStore.SaveAsync(evt);
-        Console.WriteLine($"✅ 事件已存储: {evt.EventId}");
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await TriggerLearningAsync(evt);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"⚠️ 思考层学习失败: {ex.Message}");
-            }
-        });
+            Console.WriteLine($"⚠️ SinkAsync 写入失败: {ex.Message}");
+            throw;  // ★ 重新抛出，让上层处理
+        }
     }
 
     // ============================================================
