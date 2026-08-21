@@ -35,4 +35,9 @@ public class CognitiveRecordModel
     /// 所属会话ID
     /// </summary>
     public string TopicId { get; set; } = "";
+
+    /// <summary>
+    /// 关联的事件ID（用于补全时快速定位事件）
+    /// </summary>
+    public string EventId { get; set; } = "";
 }

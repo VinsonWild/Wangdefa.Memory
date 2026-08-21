@@ -86,8 +86,8 @@ public class MemoryTools
 
     [McpServerTool]
     public static async Task<string> ProcessMessage(
-    [Description("用户输入的消息")] string input,
-    [Description("会话ID，用于隔离不同会话的记忆")] string? sessionId = null)
+        [Description("用户输入的消息")] string input,
+        [Description("会话ID，用于隔离不同会话的记忆")] string? sessionId = null)
     {
         try
         {
@@ -132,6 +132,7 @@ public class MemoryTools
 
     [McpServerTool]
     public static async Task<string> SaveMemory(
+        [Description("用户原始输入")] string userInput,
         [Description("Agent的回复内容")] string agentResponse,
         [Description("卡片ID（由 ProcessMessage 返回的 frameId）")] string cardId,
         [Description("状态：completed / interrupted / failed")] string status = "completed",
@@ -143,6 +144,7 @@ public class MemoryTools
 
             await _memory!.CompleteMemory(
                 cardId: cardId,
+                userInput: userInput,
                 agentResponse: agentResponse,
                 status: status,
                 errorMessage: errorMessage

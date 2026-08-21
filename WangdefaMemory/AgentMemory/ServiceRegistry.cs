@@ -63,7 +63,8 @@ public static class ServiceRegistry
             _knowledgeStore,
             _eventStore,
             _learningOrchestrator,
-            sqliteTools
+            sqliteTools,
+            chatService  // ★ 新增
         );
 
         _metadataService = new MemoryMetadataService(basePath);

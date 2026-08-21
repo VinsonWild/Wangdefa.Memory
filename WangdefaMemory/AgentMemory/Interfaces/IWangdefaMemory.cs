@@ -1,4 +1,5 @@
-﻿using Wangdefa.AgentMemory.FeatureEngine.Models;
+﻿using Wangdefa.AgentMemory.Cognitive;
+using Wangdefa.AgentMemory.FeatureEngine.Models;
 using Wangdefa.AgentMemory.Models;
 
 namespace Wangdefa.AgentMemory.Interfaces;
@@ -138,11 +139,13 @@ public interface IWangdefaMemory
     /// 补全卡片（更新 agentResponse 和状态）
     /// </summary>
     /// <param name="cardId">卡片ID（由 WriteMemoryFrame 返回）</param>
+    /// <param name="userInput">用户输入（用于 C线 摘要生成）</param>
     /// <param name="agentResponse">Agent的回复内容</param>
     /// <param name="status">状态：completed / interrupted / failed</param>
     /// <param name="errorMessage">错误信息（当状态为 failed 时可选）</param>
     Task CompleteMemory(
         string cardId,
+        string userInput,
         string agentResponse,
         string status,
         string? errorMessage = null);

@@ -1,4 +1,5 @@
-﻿using Wangdefa.AgentMemory.Models;
+﻿using Wangdefa.AgentMemory.Cognitive;
+using Wangdefa.AgentMemory.Models;
 
 namespace Wangdefa.AgentMemory.Interfaces;
 
@@ -38,8 +39,13 @@ public interface IMemorySinkService
     /// 补全卡片
     /// </summary>
     /// <param name="cardId">卡片ID</param>
+    /// <param name="userInput">用户输入（用于 C线 摘要生成）</param>
+    /// <param name="agentResponse">Agent回复</param>
+    /// <param name="status">状态</param>
+    /// <param name="errorMessage">错误信息</param>
     Task CompleteAsync(
         string cardId,
+        string userInput,
         string agentResponse,
         string status,
         string? errorMessage = null);

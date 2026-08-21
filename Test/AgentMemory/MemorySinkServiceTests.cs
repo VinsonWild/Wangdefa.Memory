@@ -8,6 +8,7 @@ using Wangdefa.AgentMemory.Models;
 using Wangdefa.AgentMemory.Thinking;
 using Wangdefa.AgentMemory.Thinking.Events;
 using Wangdefa.AgentMemory.Thinking.KnowledgeExtractor;
+using Wangdefa.Contracts;
 
 using PreferenceEntry = Wangdefa.AgentMemory.Models.PreferenceEntry;
 
@@ -46,6 +47,7 @@ public class MemorySinkServiceTests : IDisposable
         _learningOrchestrator = mockLearning.Object;
 
         var mockSqliteTools = new Mock<ISQLiteTools>();
+        var mockChatService = new Mock<IChatService>();  
         _sinkService = new MemorySinkService(
             _recordsPath,
             _testDir,
@@ -54,7 +56,8 @@ public class MemorySinkServiceTests : IDisposable
             _knowledgeStore,
             _eventStore,
             _learningOrchestrator,
-            mockSqliteTools.Object
+            mockSqliteTools.Object,
+            mockChatService.Object  
         );
     }
 

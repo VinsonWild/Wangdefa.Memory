@@ -1,5 +1,6 @@
 ﻿// ================================================================
 // MemorySinkService.cs — 记忆体写入（含偏好存储）
+// 修复指针一致性问题 v2
 // ================================================================
 
 using System.Text.Json;
@@ -9,8 +10,10 @@ using Wangdefa.AgentMemory.Interfaces;
 using Wangdefa.AgentMemory.Knowledge;
 using Wangdefa.AgentMemory.Models;
 using Wangdefa.AgentMemory.Signal;
+using Wangdefa.AgentMemory.Thinking;
 using Wangdefa.AgentMemory.Thinking.Events;
 using Wangdefa.AgentMemory.Thinking.KnowledgeExtractor;
+using Wangdefa.Contracts;
 
 namespace Wangdefa.AgentMemory;
 
@@ -24,6 +27,7 @@ public class MemorySinkService : IMemorySinkService
     private readonly IEventStore _eventStore;
     private readonly ILearningOrchestrator _learningOrchestrator;
     private readonly ISQLiteTools _sqliteTools;
+    private readonly IChatService _chatService;
 
     public MemorySinkService(
         string recordsPath,
@@ -33,7 +37,8 @@ public class MemorySinkService : IMemorySinkService
         IKnowledgeStore knowledgeStore,
         IEventStore eventStore,
         ILearningOrchestrator learningOrchestrator,
-        ISQLiteTools sqliteTools)
+        ISQLiteTools sqliteTools,
+        IChatService chatService)
     {
         _recordsPath = recordsPath;
         _knowledgePath = Path.Combine(basePath, "experience", "knowledge");
@@ -43,6 +48,7 @@ public class MemorySinkService : IMemorySinkService
         _eventStore = eventStore;
         _learningOrchestrator = learningOrchestrator;
         _sqliteTools = sqliteTools;
+        _chatService = chatService;
     }
 
     // ============================================================
@@ -64,8 +70,10 @@ public class MemorySinkService : IMemorySinkService
     {
         try
         {
-            var recordId = $"认知_{DateTime.Now:yyyyMMdd_HHmmss}";
-            var thinkingRecordId = $"记录_{DateTime.Now:yyyyMMdd_HHmmss}";
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var recordId = $"认知_{timestamp}";
+            var thinkingRecordId = $"记录_{timestamp}";
+            var eventId = $"事件_{timestamp}";
 
             var insight = new InsightModel
             {
@@ -81,11 +89,13 @@ public class MemorySinkService : IMemorySinkService
                 Perception = perception,
                 Insight = insight,
                 RecordId = thinkingRecordId,
+                EventId = eventId,
                 CreatedAt = DateTime.Now,
                 Weight = 1.0,
                 LastAccessAt = DateTime.Now,
                 SourcePath = sourcePath ?? "",
-                Status = "completed"
+                Status = "completed",
+                TopicId = topicId
             };
 
             var cognitivePath = Path.Combine(_recordsPath, $"{recordId}.json");
@@ -103,15 +113,15 @@ public class MemorySinkService : IMemorySinkService
                 CognitiveRecordId = recordId,
                 EventType = string.IsNullOrEmpty(sourcePath) ? "chat" : "file",
                 TopicId = topicId,
-                SummaryPointer = $"knowledge/{topicId}/摘要_{DateTime.Now:yyyyMMdd_HHmmss}.json",
-                OverviewPointer = $"knowledge/{topicId}/概览_{DateTime.Now:yyyyMMdd_HHmmss}.json",
+                SummaryPointer = $"knowledge/{topicId}/摘要_{timestamp}.json",
+                OverviewPointer = $"knowledge/{topicId}/概览_{timestamp}.json",
                 FullTextPointer = sourcePath ?? "",
                 FullTextType = string.IsNullOrEmpty(sourcePath) ? "db" : "file",
                 CreatedAt = DateTime.Now,
                 LastAccessAt = DateTime.Now
             };
 
-            await _thinkingStore.SaveIndex(diversionIndex, topicId);
+            await SaveIndexWithIdAsync(thinkingRecordId, diversionIndex, topicId);
 
             cognitiveRecord.RecordId = thinkingRecordId;
             var updatedJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
@@ -121,7 +131,7 @@ public class MemorySinkService : IMemorySinkService
             {
                 var overviewModel = new OverviewModel
                 {
-                    Id = $"概览_{DateTime.Now:yyyyMMdd_HHmmss}",
+                    Id = $"概览_{timestamp}",
                     TopicId = topicId,
                     CognitiveRecordId = recordId,
                     Text = overview,
@@ -152,7 +162,7 @@ public class MemorySinkService : IMemorySinkService
 
             var evt = new EventModel
             {
-                EventId = $"事件_{DateTime.Now:yyyyMMdd_HHmmss}",
+                EventId = eventId,
                 EventType = string.IsNullOrEmpty(sourcePath) ? "chat" : "file",
                 EventLevel = "point",
                 Mode = "wangdefa_full",
@@ -200,12 +210,12 @@ public class MemorySinkService : IMemorySinkService
         catch (Exception ex)
         {
             Console.WriteLine($"⚠️ SinkAsync 写入失败: {ex.Message}");
-            throw;  // ★ 重新抛出，让上层处理
+            throw;
         }
     }
 
     // ============================================================
-    // 新增：前置写入卡片框架
+    // ★ 修复：前置写入卡片框架（统一ID）
     // ============================================================
     public async Task<string> WriteFrameAsync(
         string topicId,
@@ -216,8 +226,11 @@ public class MemorySinkService : IMemorySinkService
         string? sourcePath = null,
         string? sourceType = null)
     {
-        var recordId = $"认知_{DateTime.Now:yyyyMMdd_HHmmss}";
-        var thinkingRecordId = $"记录_{DateTime.Now:yyyyMMdd_HHmmss}";
+        // ★★★ 统一时间戳，三处共用 ★★★
+        var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        var cardId = $"认知_{timestamp}";
+        var indexId = $"记录_{timestamp}";
+        var eventId = $"事件_{timestamp}";
 
         var insight = new InsightModel
         {
@@ -229,10 +242,11 @@ public class MemorySinkService : IMemorySinkService
 
         var cognitiveRecord = new CognitiveRecordModel
         {
-            Id = recordId,
+            Id = cardId,
             Perception = perception,
             Insight = insight,
-            RecordId = thinkingRecordId,
+            RecordId = indexId,
+            EventId = eventId,
             CreatedAt = DateTime.Now,
             Weight = 1.0,
             LastAccessAt = DateTime.Now,
@@ -241,38 +255,43 @@ public class MemorySinkService : IMemorySinkService
             TopicId = topicId
         };
 
-        var cognitivePath = Path.Combine(_recordsPath, $"{recordId}.json");
+        // 1. 保存认知卡片
+        var cognitivePath = Path.Combine(_recordsPath, $"{cardId}.json");
         var cognitiveJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(cognitivePath, cognitiveJson);
 
+        // 2. 打标签
         if (tags.Count > 0)
         {
-            _featureEngine.TagCard(recordId, tags.ToList(), "cognitive", null);
-            Console.WriteLine($"✅ C线框架已写入: {recordId}，状态: pending");
+            _featureEngine.TagCard(cardId, tags.ToList(), "cognitive", null);
+            Console.WriteLine($"✅ C线框架已写入: {cardId}，状态: pending");
         }
 
+        // 3. ★ 保存索引记录（使用统一 indexId）
         var diversionIndex = new DiversionIndexModel
         {
-            CognitiveRecordId = recordId,
+            CognitiveRecordId = cardId,
             EventType = string.IsNullOrEmpty(sourcePath) ? "chat" : "file",
             TopicId = topicId,
-            SummaryPointer = $"knowledge/{topicId}/摘要_{DateTime.Now:yyyyMMdd_HHmmss}.json",
-            OverviewPointer = $"knowledge/{topicId}/概览_{DateTime.Now:yyyyMMdd_HHmmss}.json",
+            SummaryPointer = $"knowledge/{topicId}/摘要_{timestamp}.json",
+            OverviewPointer = $"knowledge/{topicId}/概览_{timestamp}.json",
             FullTextPointer = sourcePath ?? "",
             FullTextType = string.IsNullOrEmpty(sourcePath) ? "db" : "file",
             CreatedAt = DateTime.Now,
             LastAccessAt = DateTime.Now
         };
 
-        await _thinkingStore.SaveIndex(diversionIndex, topicId);
+        await SaveIndexWithIdAsync(indexId, diversionIndex, topicId);
 
-        cognitiveRecord.RecordId = thinkingRecordId;
+        // 更新认知卡片的 RecordId
+        cognitiveRecord.RecordId = indexId;
         var updatedJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(cognitivePath, updatedJson);
 
+        // 4. ★ 保存事件（使用统一 eventId）
         var evt = new EventModel
         {
-            EventId = $"事件_{DateTime.Now:yyyyMMdd_HHmmss}",
+            EventId = eventId,
             EventType = string.IsNullOrEmpty(sourcePath) ? "chat" : "file",
             EventLevel = "point",
             Mode = "wangdefa_full",
@@ -298,21 +317,22 @@ public class MemorySinkService : IMemorySinkService
                 Route = route,
                 DurationMs = null
             },
-            CognitiveRecordId = recordId,
+            CognitiveRecordId = cardId,
             FeatureTags = tags.ToArray(),
         };
 
         await _eventStore.SaveAsync(evt);
         Console.WriteLine($"✅ 事件框架已存储: {evt.EventId}，状态: pending");
 
-        return recordId;
+        return cardId;
     }
 
     // ============================================================
-    // 新增：补全卡片（直接用 cardId 定位）
+    // ★ 修复：补全卡片（修正事件查找）
     // ============================================================
     public async Task CompleteAsync(
         string cardId,
+        string userInput,
         string agentResponse,
         string status,
         string? errorMessage = null)
@@ -330,10 +350,61 @@ public class MemorySinkService : IMemorySinkService
             throw new InvalidOperationException($"卡片反序列化失败: {cognitivePath}");
         }
 
-        // 更新字段
-        cognitiveRecord.Insight.Summary = !string.IsNullOrEmpty(agentResponse)
-            ? (agentResponse.Length > 100 ? agentResponse.Substring(0, 100) : agentResponse)
-            : "";
+        // ★ 从卡片中获取事件ID（写框架时已保存）
+        string? eventId = cognitiveRecord.EventId;
+
+        // 如果卡片里没有 EventId（兼容旧数据），从 cardId 推导
+        if (string.IsNullOrEmpty(eventId))
+        {
+            var parts = cardId.Split('_');
+            if (parts.Length >= 3)
+            {
+                var timestamp = string.Join("_", parts.Skip(1));
+                eventId = $"事件_{timestamp}";
+                Console.WriteLine($"[CompleteAsync] 从 cardId 推导 EventId: {eventId}");
+            }
+        }
+
+        // ★ 用事件ID加载事件
+        EventModel? eventModel = null;
+        if (!string.IsNullOrEmpty(eventId))
+        {
+            eventModel = await _eventStore.LoadAsync(eventId);
+            if (eventModel == null)
+            {
+                Console.WriteLine($"[CompleteAsync] ⚠️ 事件不存在: {eventId}，尝试用 CognitiveRecordId 查找...");
+                var todayEvents = await _eventStore.GetDayEventsAsync(DateTime.Now);
+                eventModel = todayEvents.FirstOrDefault(e => e.CognitiveRecordId == cardId);
+            }
+        }
+
+        // 兜底：用 CognitiveRecordId 查
+        if (eventModel == null)
+        {
+            Console.WriteLine($"[CompleteAsync] ⚠️ 仍未找到事件，尝试用 CognitiveRecordId 查询...");
+            var todayEvents = await _eventStore.GetDayEventsAsync(DateTime.Now);
+            eventModel = todayEvents.FirstOrDefault(e => e.CognitiveRecordId == cardId);
+        }
+
+        // ===== C线：摘要生成 =====
+        var contentTags = cognitiveRecord.Insight?.ContentTags ?? Array.Empty<string>();
+        var structuredTagsFromCard = contentTags.Select(t => new StructuredTag { Tag = t }).ToArray();
+
+        var summaryAnalyzer = new SummaryAnalyzer(_chatService);
+        var summaryResult = await summaryAnalyzer.AnalyzeAsync(
+            userInput: userInput,
+            agentResponse: agentResponse,
+            structuredTags: structuredTagsFromCard,
+            missingTags: null
+        );
+
+        // 更新摘要
+        cognitiveRecord.Insight.Summary = !string.IsNullOrEmpty(summaryResult.Summary)
+            ? summaryResult.Summary
+            : (!string.IsNullOrEmpty(agentResponse)
+                ? (agentResponse.Length > 100 ? agentResponse.Substring(0, 100) : agentResponse)
+                : "");
+
         cognitiveRecord.Status = status;
         cognitiveRecord.Weight = 1.0;
         cognitiveRecord.LastAccessAt = DateTime.Now;
@@ -343,14 +414,61 @@ public class MemorySinkService : IMemorySinkService
             cognitiveRecord.Insight.Summary = $"错误: {errorMessage}";
         }
 
+        // 更新缺失标签定义
+        if (summaryResult.MissingTagDefinitions != null && summaryResult.MissingTagDefinitions.Count > 0)
+        {
+            foreach (var kv in summaryResult.MissingTagDefinitions)
+            {
+                var code = _featureEngine.Tags.GetCode(kv.Key);
+                if (code != null)
+                {
+                    _featureEngine.Tags.UpdateDefinition(code, kv.Value);
+                }
+            }
+            Console.WriteLine($"✅ 已更新 {summaryResult.MissingTagDefinitions.Count} 个缺失标签定义");
+        }
+
+        // 更新偏好
+        if (summaryResult.Preferences != null && summaryResult.Preferences.Count > 0)
+        {
+            cognitiveRecord.Insight.Preferences = summaryResult.Preferences;
+        }
+
+        // 保存概览
+        if (!string.IsNullOrEmpty(summaryResult.Overview))
+        {
+            var topicId = cognitiveRecord.TopicId ?? "default";
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var overviewModel = new OverviewModel
+            {
+                Id = $"概览_{timestamp}",
+                TopicId = topicId,
+                CognitiveRecordId = cardId,
+                Text = summaryResult.Overview,
+                ContentType = "chat",
+                WordCount = summaryResult.Overview.Length,
+                Confidence = 0.8,
+                CreatedAt = DateTime.Now
+            };
+
+            var overviewPath = Path.Combine(_knowledgePath, topicId, $"{overviewModel.Id}.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(overviewPath)!);
+            await File.WriteAllTextAsync(overviewPath, JsonSerializer.Serialize(overviewModel, new JsonSerializerOptions { WriteIndented = true }));
+
+            cognitiveRecord.SourcePath = Path.Combine(topicId, $"{overviewModel.Id}.json");
+            Console.WriteLine($"✅ 概览已保存: {overviewPath}");
+        }
+
+        // 保存认知卡片
         var updatedJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(cognitivePath, updatedJson);
 
-        var eventModel = await _eventStore.LoadAsync(cognitiveRecord.RecordId);
+        // ★ 更新事件（找到了才更新）
         if (eventModel != null)
         {
             eventModel.Data.AgentResponse = agentResponse;
             eventModel.Result.Status = status;
+            eventModel.Result.Summary = summaryResult.Summary ?? "";
             if (status == "failed" && !string.IsNullOrEmpty(errorMessage))
             {
                 eventModel.Result.ErrorMessage = errorMessage;
@@ -358,7 +476,12 @@ public class MemorySinkService : IMemorySinkService
             await _eventStore.SaveAsync(eventModel);
             Console.WriteLine($"✅ 事件已补全: {eventModel.EventId}，状态: {status}");
         }
+        else
+        {
+            Console.WriteLine($"[CompleteAsync] ⚠️ 未能找到关联事件，状态更新可能不完整");
+        }
 
+        // 更新特征统计
         if (cognitiveRecord.Insight.ContentTags?.Length > 0)
         {
             var codes = cognitiveRecord.Insight.ContentTags
@@ -373,6 +496,7 @@ public class MemorySinkService : IMemorySinkService
             }
         }
 
+        // 写入 SQLite
         var perceptionJson = JsonSerializer.Serialize(cognitiveRecord.Perception);
         await _sqliteTools.WriteRecord(
             cognitiveRecord.Insight.Summary ?? "",
@@ -390,8 +514,19 @@ public class MemorySinkService : IMemorySinkService
     }
 
     // ============================================================
-    // 原有私有方法（保持不变）
+    // 辅助方法
     // ============================================================
+
+    /// <summary>
+    /// 用指定ID保存索引
+    /// </summary>
+    private async Task SaveIndexWithIdAsync(string indexId, DiversionIndexModel index, string topicId)
+    {
+        var chatPath = _thinkingStore.GetTopicPath(topicId);
+        var path = Path.Combine(chatPath, $"{indexId}.json");
+        var json = JsonSerializer.Serialize(index, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(path, json);
+    }
 
     private async Task TriggerLearningAsync(EventModel evt)
     {
