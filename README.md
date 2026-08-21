@@ -388,22 +388,35 @@ Agent 生成回复 → 调用 SaveMemory(frameId, agentResponse)
 
 ## 📄 更新说明
 
-### v1.1.0 (2026-08-19)
+### v1.1.3 (2026-08-)
 
-- 完成 MCP 适配，支持通过 MCP 协议接入 DSH
-- 新增 `ProcessMessage`、`SaveMemory` 两个 MCP 工具
-- C线 写入拆分为“先写框架，后补全”，支持状态标记
-- A线 增加三层兜底（完整意图 → 简化分词 → 规则分词）
-- 标签匹配增加 definition 子串匹配
-- 支持从 `.credentials.yaml` 读取 API Key
-- 修复 MCP Server 握手问题
-- 修复 A线 `{userInput}` 占位符缺失问题
-- 简化解析器逻辑，只取 `structured_tags[].tag`
-- C线 补全后更新特征统计，提高 `completed` 卡片检索权重
-- 检索只返回 `completed` 状态卡片，过滤 `pending` 空卡
-- A线 增加近期记忆参考：调用时自动注入最近10张认知卡摘要和标签
-- `IntentAnalyzer` 支持从指定目录读取认知卡
-- 优化标签提取的上下文准确性
+🐛 Bug 修复
+修复 MCP 版 C线缺失问题：CompleteAsync 接回 SummaryAnalyzer，补全时调用 LLM 生成摘要、概览、缺失标签定义和偏好
+
+修复 structuredTags 传递断裂问题：改为从卡片反查标签，移除外部传入依赖
+
+修复概览落盘缺失问题：CompleteAsync 补全时同步写入 knowledge/{topicId}/概览_xxx.json
+
+修复卡片 SourcePath 指针未保存问题：改完后重新保存卡片，确保 medium/deep 路由能正确读取
+
+修复思考层索引与卡片关联断裂问题：统一使用相同时间戳后缀，确保认知卡 → 索引 → 事件的指针链路完整
+
+修复 pending 状态未正确标记问题：卡片框架写入时状态标记为 pending，补全后更新为 completed
+
+🔧 接口变更
+CompleteMemory/CompleteAsync 增加 userInput 参数
+
+SaveMemory 移除 structuredTagsJson 参数
+
+CognitiveRecordModel 增加 EventId 字段
+
+📦 依赖调整
+MemorySinkService 接入 IChatService，ServiceRegistry 同步适配
+
+✅ 测试
+MemorySinkServiceTests 增加 Mock<IChatService>，确保单测通过
+
+一句话总结：MCP 版 C线补全能力已恢复，指针链路已理顺，接口已统一。
 
 ---
 
