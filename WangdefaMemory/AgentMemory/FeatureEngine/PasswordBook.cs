@@ -72,9 +72,11 @@ public class PasswordBook
         using var conn = _db.GetConnection();
         conn.Open();
         var cmd = conn.CreateCommand();
-        cmd.CommandText = "INSERT OR IGNORE INTO password_book (code, card_id) VALUES (@code, @card_id)";
+        cmd.CommandText = @"INSERT OR IGNORE INTO password_book (code, card_id, card_type)
+                    VALUES (@code, @card_id, @card_type)";
         cmd.Parameters.AddWithValue("@code", code);
         cmd.Parameters.AddWithValue("@card_id", cardId);
+        cmd.Parameters.AddWithValue("@card_type", "cognitive");
         cmd.ExecuteNonQuery();
 
         if (_cache.TryGetValue(code, out var entry))

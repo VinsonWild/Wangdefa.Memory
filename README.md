@@ -388,7 +388,25 @@ Agent 生成回复 → 调用 SaveMemory(frameId, agentResponse)
 
 ## 📄 更新说明
 
-### v1.1.3 (2026-08-)
+### v1.1.4 (2026-08-22)
+1. 修复记忆写入后无法检索的问题（核心修复）
+修复了 PasswordBook.Add 方法中 SQL INSERT 语句缺少 card_type 列，导致标签-卡片关联写入静默失败的问题。
+
+影响：记忆能正常写入但后续检索不到历史卡片。
+
+修复：
+
+PasswordBook.Add 补上 card_type 字段，默认值 "cognitive"
+
+表定义添加 DEFAULT 'cognitive' 作为防御
+
+2. MCP Server stdout 日志污染协议
+修复了 MCP Server 中 Console.WriteLine 日志输出到 stdout 导致 JSON-RPC 通信断裂的问题。
+
+修复：Program.cs 添加 Console.SetOut(Console.Error);，将所有日志重定向到 stderr，避免污染协议通道。
+
+
+### v1.1.3 (2026-08-21)
 
 🐛 Bug 修复
 修复 MCP 版 C线缺失问题：CompleteAsync 接回 SummaryAnalyzer，补全时调用 LLM 生成摘要、概览、缺失标签定义和偏好

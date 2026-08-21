@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Wangdefa.AgentMemory.FeatureEngine.Models;
 
@@ -170,6 +170,8 @@ public class TagDictionary
         // ★ 不自动新增，返回 null
         return null;
     }
+
+
 
     /// <summary>
     /// 用 tag + definitions 做子串匹配，返回匹配的 code

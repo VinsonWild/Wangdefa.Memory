@@ -42,7 +42,7 @@ public class FeatureEngineDb
             CREATE TABLE IF NOT EXISTS password_book (
                 code TEXT NOT NULL,
                 card_id TEXT NOT NULL,
-                card_type TEXT NOT NULL,
+                card_type TEXT NOT NULL DEFAULT 'cognitive',
                 topic_id TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (code, card_id)

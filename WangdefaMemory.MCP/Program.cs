@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Hosting;
 using WangdefaMemory.MCP.Tools;
 
+Console.SetOut(Console.Error);
+
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>
     {
