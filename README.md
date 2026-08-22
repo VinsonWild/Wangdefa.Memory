@@ -51,73 +51,42 @@ dotnet add package Wangdefa.Memory
 
 ---
 
-## 🔌 DSH 插件使用
+## 🔌 DSH 一键安装
 
-如果你使用的是 DeepSeek Harness（DSH），可以直接将 Wangdefa.Memory 作为 MCP 插件接入。
+在 DSH 环境中执行以下命令即可完成安装：
+
+```bash
+dsh plugin add github:VinsonWild/Wangdefa.Memory
+```
+
+安装后启动 DSH，记忆体将自动工作：
+- 对话时自动检索历史记忆并注入上下文
+- 对话结束后自动保存记忆
+
+首次启动会自动下载引擎，无需额外配置。
 
 ### 前置条件
 
-- 已安装 [.NET 10.0](https://dotnet.microsoft.com/download) 或更高版本
-- 已配置 `DEEPSEEK_API_KEY` 环境变量（DeepSeek API Key）
-- （可选）如需自定义安装路径，可设置 `WANGDEFA_MEMORY_PATH` 环境变量
+- [.NET 10.0+](https://dotnet.microsoft.com/download)
+- DSH 已配置 `DEEPSEEK_API_KEY`（插件会自动复用）
 
-### 安装
+### 使用示例
 
-**方式一：从 GitHub 安装（推荐）**
-
-```bash
-dsh plugin add github:VinsonWild/WangdefaMemory
+**第一次对话（写入记忆）：**
 
 ```
-
-**方式二：本地安装**
-
-```bash
-git clone https://github.com/你的用户名/WangdefaMemory.git
-cd WangdefaMemory
-dotnet build -c Release
-dsh plugin add ./WangdefaMemory.MCP
+你：我喜欢用简洁的代码风格，变量名要清晰。
+DSH：好的，已记录你的偏好。
 ```
 
-### 配置
-
-在 DSH 的 `cordis.patch.yml` 中配置 API Key：
-
-```yaml
-- insert:
-    - id: mcp-wangdefaMemory
-      name: '@deepseek-ai/dsh-mcp-client'
-      config:
-        serverName: WangdefaMemory
-        transport: stdio
-        command: "dotnet"
-        args:
-          - "exec"
-          - "<你的路径>/WangdefaMemory.MCP/bin/Release/net10.0/WangdefaMemory.MCP.dll"
-        cwd: "<你的路径>/WangdefaMemory.MCP"
-        env:
-          DEEPSEEK_API_KEY: '${DEEPSEEK_API_KEY}'
-```
-
-### 使用
-
-在 DSH 对话中调用 MCP 工具：
-
-**1. 处理用户消息（写框架）**
+**后续对话（自动召回记忆）：**
 
 ```
-mcp__WangdefaMemory__process_message 帮我记录一下：我喜欢用简洁的代码风格
+你：帮我重构一下这个项目的代码。
+DSH：好的，根据你偏好的简洁风格，我建议...
 ```
 
-返回示例：
-```json
-{
-  "enrichedInput": "...",
-  "intent": "闲聊",
-  "hasMemory": false,
-  "frameId": "认知_20260819_143022"
-}
-```
+记忆体自动完成检索、注入和保存，无需手动调用任何工具。
 
 **2. 补全记忆（填内容）**
 
