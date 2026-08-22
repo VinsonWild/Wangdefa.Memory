@@ -1,26 +1,17 @@
 {
   "name": "wangdefa-memory",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "本地优先的 Agent 五层记忆体组件 - DSH 插件",
   "type": "module",
-  "main": "index.js",
-  "files": [
-    "index.js",
-    "scripts/postinstall.js"
-  ],
-  "scripts": {
-    "postinstall": "node scripts/postinstall.js"
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   },
-  "keywords": [
-    "dsh-plugin",
-    "memory",
-    "agent",
-    "mcp"
-  ],
-  "author": "VinsonWild",
-  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/VinsonWild/Wangdefa.Memory"
-  }
+  },
+  "author": "VinsonWild",
+  "license": "Apache-2.0"
 }

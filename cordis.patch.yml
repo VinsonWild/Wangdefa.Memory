@@ -1,0 +1,4 @@
+- insert:
+    - id: wangdefa-memory-hook
+      name: '@wangdefa/dsh-wangdefa-memory-hook'
+      config: {}
