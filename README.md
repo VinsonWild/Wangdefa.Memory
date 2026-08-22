@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
-[![NuGet](https://img.shields.io/badge/NuGet-v1.1.4-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
+[![NuGet](https://img.shields.io/badge/NuGet-v1.1.5-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
 [![DSH Plugin](https://img.shields.io/badge/DSH-Plugin-blue.svg)](https://github.com/topics/dsh-plugin)
 
 ---
@@ -387,6 +387,30 @@ Agent 生成回复 → 调用 SaveMemory(frameId, agentResponse)
 ---
 
 ## 📄 更新说明
+
+
+### v1.1.5 (2026-08-22)
+
+重构 DSH 插件为独立自包含子目录，支持用户一条命令部署。
+
+插件版本对齐引擎版本，统一为 1.1.5。
+
+插件依赖改为可选 peer 依赖，由 DSH 环境运行时提供，避免私有包安装失败。
+
+编译产物 lib/ 已提交至 git，用户无需本地构建即可加载插件。
+
+根目录新增 dsh.bundle 声明和 cordis.patch.yml，作为 dsh plugin add 的入口路由。
+
+删除旧的根目录 index.js 和 postinstall.js，入口统一由子目录接管。
+
+引擎下载逻辑由插件的 ensureEngine() 在首次运行时自动完成。
+
+优化 CI 发布脚本，仅保留引擎 zip 打包、上传 Release 和 NuGet 推送。
+
+修复根目录 package.json description 乱码。
+
+修复 tsconfig.json 自包含配置，moduleResolution 改为 bundler。
+
 
 ### v1.1.4 (2026-08-22)
 1. 修复记忆写入后无法检索的问题（核心修复）
