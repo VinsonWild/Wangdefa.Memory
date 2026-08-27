@@ -1,4 +1,9 @@
-Ôªøusing Wangdefa.AgentMemory.Cognitive;
+// Copyright ¬© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using Wangdefa.AgentMemory.Cognitive;
 using Wangdefa.AgentMemory.FeatureEngine;
 using Wangdefa.AgentMemory.Interfaces;
 using Wangdefa.AgentMemory.Knowledge;
@@ -34,7 +39,7 @@ public static class ServiceRegistry
         if (!Directory.Exists(basePath))
         {
             Directory.CreateDirectory(basePath);
-            Console.WriteLine($"[ServiceRegistry] Â∑≤ÂàõÂª∫ÁõÆÂΩï: {basePath}");
+            Console.WriteLine($"[ServiceRegistry] “—¥¥Ω®ƒø¬º: {basePath}");
         }
 
         var featureDb = new FeatureEngineDb(basePath);
@@ -64,7 +69,7 @@ public static class ServiceRegistry
             _eventStore,
             _learningOrchestrator,
             sqliteTools,
-            chatService  // ‚òÖ Êñ∞Â¢û
+            chatService  // °Ô –¬‘ˆ
         );
 
         _metadataService = new MemoryMetadataService(basePath);
@@ -81,18 +86,18 @@ public static class ServiceRegistry
             maintenanceSettings ?? new AgentMemory.Models.MaintenanceSettings()
         );
 
-        Console.WriteLine("[ServiceRegistry] ÊâÄÊúâÊúçÂä°Â∑≤Ê≥®ÂÜåÂÆåÊàê");
+        Console.WriteLine("[ServiceRegistry] À˘”–∑˛ŒÒ“—◊¢≤·ÕÍ≥…");
     }
 
-    public static WangdefaMemory GetWangdefaMemory() => _wangdefaMemory ?? throw new InvalidOperationException("ServiceRegistry Êú™ÂàùÂßãÂåñ");
-    public static string GetBasePath() => _basePath ?? throw new InvalidOperationException("ServiceRegistry Êú™ÂàùÂßãÂåñ");
-    public static FeatureEngine.FeatureEngine GetFeatureEngine() => _featureEngine ?? throw new InvalidOperationException("ServiceRegistry Êú™ÂàùÂßãÂåñ");
-    public static IThinkingStore GetThinkingStore() => _thinkingStore ?? throw new InvalidOperationException("ServiceRegistry Êú™ÂàùÂßãÂåñ");
-    public static IKnowledgeStore GetKnowledgeStore() => _knowledgeStore ?? throw new InvalidOperationException("ServiceRegistry Êú™ÂàùÂßãÂåñ");
-    public static IEventStore GetEventStore() => _eventStore ?? throw new InvalidOperationException("ServiceRegistry Êú™ÂàùÂßãÂåñ");
-    public static ILearningOrchestrator GetLearningOrchestrator() => _learningOrchestrator ?? throw new InvalidOperationException("ServiceRegistry Êú™ÂàùÂßãÂåñ");
-    public static IMemorySinkService GetSinkService() => _sinkService ?? throw new InvalidOperationException("ServiceRegistry Êú™ÂàùÂßãÂåñ");
-    public static CognitiveReader GetCognitiveReader() => _cognitiveReader ?? throw new InvalidOperationException("ServiceRegistry Êú™ÂàùÂßãÂåñ");
-    public static MemoryMetadataService GetMetadataService() => _metadataService ?? throw new InvalidOperationException("ServiceRegistry Êú™ÂàùÂßãÂåñ");
-    public static MemoryCleaner GetCleaner() => _cleaner ?? throw new InvalidOperationException("ServiceRegistry Êú™ÂàùÂßãÂåñ");
+    public static WangdefaMemory GetWangdefaMemory() => _wangdefaMemory ?? throw new InvalidOperationException("ServiceRegistry Œ¥≥ı ºªØ");
+    public static string GetBasePath() => _basePath ?? throw new InvalidOperationException("ServiceRegistry Œ¥≥ı ºªØ");
+    public static FeatureEngine.FeatureEngine GetFeatureEngine() => _featureEngine ?? throw new InvalidOperationException("ServiceRegistry Œ¥≥ı ºªØ");
+    public static IThinkingStore GetThinkingStore() => _thinkingStore ?? throw new InvalidOperationException("ServiceRegistry Œ¥≥ı ºªØ");
+    public static IKnowledgeStore GetKnowledgeStore() => _knowledgeStore ?? throw new InvalidOperationException("ServiceRegistry Œ¥≥ı ºªØ");
+    public static IEventStore GetEventStore() => _eventStore ?? throw new InvalidOperationException("ServiceRegistry Œ¥≥ı ºªØ");
+    public static ILearningOrchestrator GetLearningOrchestrator() => _learningOrchestrator ?? throw new InvalidOperationException("ServiceRegistry Œ¥≥ı ºªØ");
+    public static IMemorySinkService GetSinkService() => _sinkService ?? throw new InvalidOperationException("ServiceRegistry Œ¥≥ı ºªØ");
+    public static CognitiveReader GetCognitiveReader() => _cognitiveReader ?? throw new InvalidOperationException("ServiceRegistry Œ¥≥ı ºªØ");
+    public static MemoryMetadataService GetMetadataService() => _metadataService ?? throw new InvalidOperationException("ServiceRegistry Œ¥≥ı ºªØ");
+    public static MemoryCleaner GetCleaner() => _cleaner ?? throw new InvalidOperationException("ServiceRegistry Œ¥≥ı ºªØ");
 }

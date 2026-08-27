@@ -1,35 +1,40 @@
-ï»¿namespace Wangdefa.AgentMemory.Models;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+namespace Wangdefa.AgentMemory.Models;
 
 /// <summary>
-/// åˆ†æµç´¢å¼• â€” æ€è€ƒå±‚çš„æ ¸å¿ƒ
-/// ä¸å­˜åŸæ–‡ï¼Œåªå­˜"å»å“ªæ‰¾"
+/// ·ÖÁ÷Ë÷Òı ¡ª Ë¼¿¼²ãµÄºËĞÄ
+/// ²»´æÔ­ÎÄ£¬Ö»´æ"È¥ÄÄÕÒ"
 /// </summary>
 public class DiversionIndexModel
 {
-    /// <summary>å…³è”çš„è®¤çŸ¥è®°å½•IDï¼ˆå’Œè®¤çŸ¥å±‚å…±ç”¨ï¼‰</summary>
+    /// <summary>¹ØÁªµÄÈÏÖª¼ÇÂ¼ID£¨ºÍÈÏÖª²ã¹²ÓÃ£©</summary>
     public string CognitiveRecordId { get; set; } = "";
 
-    /// <summary>äº‹ä»¶ç±»å‹ï¼šchat / file / system</summary>
+    /// <summary>ÊÂ¼şÀàĞÍ£ºchat / file / system</summary>
     public string EventType { get; set; } = "chat";
 
-    /// <summary>æ‰€å±è¯é¢˜</summary>
+    /// <summary>ËùÊô»°Ìâ</summary>
     public string TopicId { get; set; } = "";
 
-    /// <summary>æ¦‚è¦æŒ‡é’ˆ â†’ æŒ‡å‘çŸ¥è¯†å±‚çš„æ¦‚è¦</summary>
+    /// <summary>¸ÅÒªÖ¸Õë ¡ú Ö¸ÏòÖªÊ¶²ãµÄ¸ÅÒª</summary>
     public string SummaryPointer { get; set; } = "";
 
-    /// <summary>æ¦‚è§ˆæŒ‡é’ˆ â†’ æŒ‡å‘çŸ¥è¯†å±‚çš„æ¦‚è§ˆ</summary>
+    /// <summary>¸ÅÀÀÖ¸Õë ¡ú Ö¸ÏòÖªÊ¶²ãµÄ¸ÅÀÀ</summary>
     public string OverviewPointer { get; set; } = "";
 
-    /// <summary>å…¨é‡æŒ‡é’ˆ â†’ æŒ‡å‘æœ¬åœ°åŸæ–‡ä½ç½®</summary>
+    /// <summary>È«Á¿Ö¸Õë ¡ú Ö¸Ïò±¾µØÔ­ÎÄÎ»ÖÃ</summary>
     public string FullTextPointer { get; set; } = "";
 
-    /// <summary>å…¨é‡ç±»å‹ï¼šfile / db / url</summary>
+    /// <summary>È«Á¿ÀàĞÍ£ºfile / db / url</summary>
     public string FullTextType { get; set; } = "file";
 
-    /// <summary>åˆ›å»ºæ—¶é—´</summary>
+    /// <summary>´´½¨Ê±¼ä</summary>
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-    /// <summary>è®¿é—®æ—¶é—´ï¼ˆä¾›æƒé‡è¡°å‡ï¼‰</summary>
+    /// <summary>·ÃÎÊÊ±¼ä£¨¹©È¨ÖØË¥¼õ£©</summary>
     public DateTime LastAccessAt { get; set; } = DateTime.Now;
 }

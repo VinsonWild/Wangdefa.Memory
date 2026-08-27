@@ -1,10 +1,15 @@
-ï»¿using Microsoft.Data.Sqlite;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using Microsoft.Data.Sqlite;
 using Wangdefa.AgentMemory.FeatureEngine.Models;
 
 namespace Wangdefa.AgentMemory.FeatureEngine;
 
 /// <summary>
-/// ç‰¹å¾ç»Ÿè®¡ç®¡ç†
+/// ÌØÕ÷Í³¼Æ¹ÜÀí
 /// </summary>
 public class FeatureStats
 {
@@ -43,7 +48,7 @@ public class FeatureStats
     }
 
     /// <summary>
-    /// è®°å½•ç‰¹å¾å‘½ä¸­
+    /// ¼ÇÂ¼ÌØÕ÷ÃüÖĞ
     /// </summary>
     public void RecordHit(List<string> codes)
     {
@@ -54,7 +59,7 @@ public class FeatureStats
     }
 
     /// <summary>
-    /// è®°å½•å•ä¸ªç‰¹å¾å‘½ä¸­
+    /// ¼ÇÂ¼µ¥¸öÌØÕ÷ÃüÖĞ
     /// </summary>
     public void RecordHit(string code)
     {
@@ -73,7 +78,7 @@ public class FeatureStats
         cmd.Parameters.AddWithValue("@now", DateTime.Now);
         cmd.ExecuteNonQuery();
 
-        // æ›´æ–°ç¼“å­˜
+        // ¸üĞÂ»º´æ
         if (_stats.TryGetValue(code, out var stat))
         {
             stat.HitCount++;
@@ -94,7 +99,7 @@ public class FeatureStats
     }
 
     /// <summary>
-    /// è·å–ç‰¹å¾ç»Ÿè®¡
+    /// »ñÈ¡ÌØÕ÷Í³¼Æ
     /// </summary>
     public FeatureStat? GetStat(string code)
     {
@@ -102,7 +107,7 @@ public class FeatureStats
     }
 
     /// <summary>
-    /// è·å–æ‰€æœ‰ç»Ÿè®¡
+    /// »ñÈ¡ËùÓĞÍ³¼Æ
     /// </summary>
     public List<FeatureStat> GetAll()
     {
@@ -110,7 +115,7 @@ public class FeatureStats
     }
 
     /// <summary>
-    /// æŒ‰å‘½ä¸­æ¬¡æ•°æ’åºï¼ˆé«˜é¢‘ä¼˜å…ˆï¼‰
+    /// °´ÃüÖĞ´ÎÊıÅÅĞò£¨¸ßÆµÓÅÏÈ£©
     /// </summary>
     public List<string> GetTopCodes(int topN = 20)
     {

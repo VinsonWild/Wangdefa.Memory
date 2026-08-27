@@ -1,11 +1,16 @@
-ï»¿using System.Text.Json;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using System.Text.Json;
 using Wangdefa.AgentMemory.Interfaces;
 using Wangdefa.AgentMemory.Models;
 
 namespace Wangdefa.AgentMemory.Knowledge;
 
 /// <summary>
-/// çŸ¥è¯†è¯¦æƒ…å­˜å‚¨ - æŒ‰è¯é¢˜å­˜å‚¨å¯¹è¯åˆ†æç»“æœï¼ˆè¡Œä¸º/åå¥½/å†³ç­–ï¼‰
+/// ÖªÊ¶ÏêÇé´æ´¢ - °´»°Ìâ´æ´¢¶Ô»°·ÖÎö½á¹û£¨ĞĞÎª/Æ«ºÃ/¾ö²ß£©
 /// </summary>
 public class KnowledgeStore : IKnowledgeStore
 {
@@ -27,11 +32,11 @@ public class KnowledgeStore : IKnowledgeStore
     }
 
     /// <summary>
-    /// ä¿å­˜å¯¹è¯åˆ†æç»“æœï¼ˆä» object æå–å­—æ®µï¼‰ï¼Œå¹¶æ›´æ–°ç´¢å¼•
+    /// ±£´æ¶Ô»°·ÖÎö½á¹û£¨´Ó object ÌáÈ¡×Ö¶Î£©£¬²¢¸üĞÂË÷Òı
     /// </summary>
     public async Task<string> Save(object analysis, string topicId)
     {
-        var id = $"åˆ†æ_{DateTime.Now:yyyyMMdd_HHmmss}";
+        var id = $"·ÖÎö_{DateTime.Now:yyyyMMdd_HHmmss}";
         var path = Path.Combine(GetKnowledgePath(topicId), $"{id}.json");
         var json = JsonSerializer.Serialize(analysis, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(path, json);
@@ -46,7 +51,7 @@ public class KnowledgeStore : IKnowledgeStore
     }
 
     /// <summary>
-    /// ä¿å­˜å¯¹è¯åˆ†æç»“æœï¼ˆå¼ºç±»å‹ DialogueAnalysisï¼‰ï¼Œå¹¶æ›´æ–°ç´¢å¼•
+    /// ±£´æ¶Ô»°·ÖÎö½á¹û£¨Ç¿ÀàĞÍ DialogueAnalysis£©£¬²¢¸üĞÂË÷Òı
     /// </summary>
     public async Task<string> SaveDialogueAnalysis(DialogueAnalysis analysis, string topicId)
     {
@@ -69,7 +74,7 @@ public class KnowledgeStore : IKnowledgeStore
     }
 
     /// <summary>
-    /// åŠ è½½å¼ºç±»å‹å¯¹è¯åˆ†æç»“æœ
+    /// ¼ÓÔØÇ¿ÀàĞÍ¶Ô»°·ÖÎö½á¹û
     /// </summary>
     public async Task<DialogueAnalysis?> LoadDialogueAnalysis(string id, string topicId)
     {
@@ -80,7 +85,7 @@ public class KnowledgeStore : IKnowledgeStore
     }
 
     /// <summary>
-    /// æŒ‰æ ‡ç­¾åŒ¹é…å¯¹è¯åˆ†æç»“æœ
+    /// °´±êÇ©Æ¥Åä¶Ô»°·ÖÎö½á¹û
     /// </summary>
     public async Task<List<KnowledgeIndexEntry>> Search(string topicId, string[] queryTags)
     {
@@ -90,7 +95,7 @@ public class KnowledgeStore : IKnowledgeStore
     }
 
     /// <summary>
-    /// è·å–æŸä¸ªè¯é¢˜ä¸‹çš„æ‰€æœ‰å¯¹è¯åˆ†æç»“æœ
+    /// »ñÈ¡Ä³¸ö»°ÌâÏÂµÄËùÓĞ¶Ô»°·ÖÎö½á¹û
     /// </summary>
     public async Task<List<KnowledgeIndexEntry>> GetAll(string topicId)
     {
@@ -99,7 +104,7 @@ public class KnowledgeStore : IKnowledgeStore
     }
 
     /// <summary>
-    /// åˆ é™¤å¯¹è¯åˆ†æç»“æœï¼ˆåŒæ—¶åˆ é™¤ç´¢å¼•å’Œæ–‡ä»¶ï¼‰
+    /// É¾³ı¶Ô»°·ÖÎö½á¹û£¨Í¬Ê±É¾³ıË÷ÒıºÍÎÄ¼ş£©
     /// </summary>
     public async Task<bool> Delete(string id, string topicId)
     {
@@ -118,7 +123,7 @@ public class KnowledgeStore : IKnowledgeStore
     }
 
     /// <summary>
-    /// é‡å»ºçŸ¥è¯†ç´¢å¼•ï¼ˆä»æ‰€æœ‰å¯¹è¯åˆ†ææ–‡ä»¶é‡æ–°ç”Ÿæˆç´¢å¼•ï¼‰
+    /// ÖØ½¨ÖªÊ¶Ë÷Òı£¨´ÓËùÓĞ¶Ô»°·ÖÎöÎÄ¼şÖØĞÂÉú³ÉË÷Òı£©
     /// </summary>
     public async Task RebuildIndex(string topicId)
     {
@@ -126,7 +131,7 @@ public class KnowledgeStore : IKnowledgeStore
         if (!Directory.Exists(knowledgePath)) return;
 
         var index = new Dictionary<string, List<string>>();
-        var files = Directory.GetFiles(knowledgePath, "åˆ†æ_*.json");
+        var files = Directory.GetFiles(knowledgePath, "·ÖÎö_*.json");
 
         foreach (var file in files)
         {
@@ -136,7 +141,7 @@ public class KnowledgeStore : IKnowledgeStore
                 var doc = JsonDocument.Parse(json);
                 var id = Path.GetFileNameWithoutExtension(file);
 
-                // æå– tags
+                // ÌáÈ¡ tags
                 if (doc.RootElement.TryGetProperty("Tags", out var tags) && tags.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var tag in tags.EnumerateArray())
@@ -150,7 +155,7 @@ public class KnowledgeStore : IKnowledgeStore
                     }
                 }
 
-                // å…¼å®¹æ—§æ ¼å¼ "tags"ï¼ˆå°å†™ï¼‰
+                // ¼æÈİ¾É¸ñÊ½ "tags"£¨Ğ¡Ğ´£©
                 if (doc.RootElement.TryGetProperty("tags", out var tagsLower) && tagsLower.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var tag in tagsLower.EnumerateArray())
@@ -166,14 +171,14 @@ public class KnowledgeStore : IKnowledgeStore
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[KnowledgeStore] é‡å»ºç´¢å¼•å¤±è´¥: {file}, {ex.Message}");
+                Console.WriteLine($"[KnowledgeStore] ÖØ½¨Ë÷ÒıÊ§°Ü: {file}, {ex.Message}");
             }
         }
 
         var indexPath = Path.Combine(knowledgePath, "index.json");
         var jsonOutput = JsonSerializer.Serialize(index, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(indexPath, jsonOutput);
-        Console.WriteLine($"[KnowledgeStore] çŸ¥è¯†ç´¢å¼•å·²é‡å»º: {topicId}, {index.Count} ä¸ªæ ‡ç­¾");
+        Console.WriteLine($"[KnowledgeStore] ÖªÊ¶Ë÷ÒıÒÑÖØ½¨: {topicId}, {index.Count} ¸ö±êÇ©");
     }
 
     private string[] ExtractTags(object analysis)

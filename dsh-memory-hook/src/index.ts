@@ -1,3 +1,8 @@
+// Copyright © 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
 /**
  * Auto-invoke a memory MCP service on the agent loop.
  *
@@ -8,8 +13,8 @@
  * tool with the last user input + assistant reply to persist the conversation.
  *
  * It listens on the harness's canonical extension points:
- * - `agent/pre-step`      (user prompt → recall + inject, mirrors UserPromptSubmit)
- * - `agent/turn-stopping` (turn end → save, deduped per turn)
+ * - `agent/pre-step`      (user prompt �?recall + inject, mirrors UserPromptSubmit)
+ * - `agent/turn-stopping` (turn end �?save, deduped per turn)
  * - `session/event`       (capture user input + assistant reply text)
  *
  * @module @wangdefa/dsh-wangdefa-memory-hook
@@ -176,7 +181,7 @@ async function getLatestVersion(): Promise<string | null> {
  * Returns true on success, false on failure.
  */
 function downloadAndUnpackEngine(dir: string, zipPath: string): boolean {
-    console.log(`[wangdefa-memory-hook] 开始下载引擎: ${ENGINE_DOWNLOAD_URL}`)
+    console.log(`[wangdefa-memory-hook] 开始下载引�? ${ENGINE_DOWNLOAD_URL}`)
     try {
         // Download
         if (process.platform === 'win32') {
@@ -249,10 +254,10 @@ async function ensureEngine(): Promise<void> {
         }
         if (installed && installed !== latest) {
             console.log(
-                `[wangdefa-memory-hook] 📢 发现新版本: ${latest}（当前: ${installed}），正在自动更新...`,
+                `[wangdefa-memory-hook] 📢 发现新版�? ${latest}（当�? ${installed}），正在自动更新...`,
             )
         } else {
-            console.log(`[wangdefa-memory-hook] 首次安装，下载引擎版本: ${latest}`)
+            console.log(`[wangdefa-memory-hook] 首次安装，下载引擎版�? ${latest}`)
         }
     } else {
         // GitHub API failed; fall back to "install if missing"
@@ -280,10 +285,10 @@ async function ensureEngine(): Promise<void> {
             // Fallback: write the current date as a version marker
             writeInstalledVersion(new Date().toISOString().slice(0, 10))
         }
-        console.log(`[wangdefa-memory-hook] ✅ 记忆体引擎已就绪: ${path.join(dir, 'WangdefaMemory.MCP.dll')}`)
+        console.log(`[wangdefa-memory-hook] �?记忆体引擎已就绪: ${path.join(dir, 'WangdefaMemory.MCP.dll')}`)
     } else {
         console.warn(`[wangdefa-memory-hook] ⚠️ 引擎安装失败，请手动下载: ${ENGINE_DOWNLOAD_URL}`)
-        console.warn(`[wangdefa-memory-hook] 解压到: ${dir}`)
+        console.warn(`[wangdefa-memory-hook] 解压�? ${dir}`)
     }
 }
 

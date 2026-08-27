@@ -1,9 +1,14 @@
-ï»¿namespace Wangdefa.AgentMemory.Models;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+namespace Wangdefa.AgentMemory.Models;
 
 /// <summary>
-/// æ¦‚è§ˆæ¨¡å‹ â€” çŸ¥è¯†å±‚çš„è‡ªç„¶è¯­è¨€é¢„è§ˆ
-/// ä¾›LLMå¿«é€Ÿç†è§£å†…å®¹ï¼Œå†³å®šæ˜¯å¦éœ€è¦å–å…¨æ–‡
-/// é•¿åº¦ï¼š100-300å­—
+/// ¸ÅÀÀÄ£ĞÍ ¡ª ÖªÊ¶²ãµÄ×ÔÈ»ÓïÑÔÔ¤ÀÀ
+/// ¹©LLM¿ìËÙÀí½âÄÚÈİ£¬¾ö¶¨ÊÇ·ñĞèÒªÈ¡È«ÎÄ
+/// ³¤¶È£º100-300×Ö
 /// </summary>
 public class OverviewModel
 {

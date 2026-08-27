@@ -1,4 +1,9 @@
-ï»¿using System.Text.Json;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using System.Text.Json;
 using Wangdefa.AgentMemory.Models;
 
 namespace Wangdefa.AgentMemory.Signal;
@@ -25,7 +30,7 @@ public class MemoryCleaner
     }
 
     /// <summary>
-    /// æ‰§è¡Œæ¸…ç†ï¼Œè¿”å›æ¸…ç†æ•°é‡
+    /// Ö´ĞĞÇåÀí£¬·µ»ØÇåÀíÊıÁ¿
     /// </summary>
     public async Task<int> CleanAsync()
     {
@@ -33,10 +38,10 @@ public class MemoryCleaner
         var cleaned = 0;
         var allRecords = new List<CognitiveRecordModel>();
 
-        // ===== 1. åŠ è½½æ‰€æœ‰æƒé‡è®°å½• =====
+        // ===== 1. ¼ÓÔØËùÓĞÈ¨ÖØ¼ÇÂ¼ =====
         if (Directory.Exists(_cognitivePath))
         {
-            var files = Directory.GetFiles(_cognitivePath, "è®¤çŸ¥_*.json");
+            var files = Directory.GetFiles(_cognitivePath, "ÈÏÖª_*.json");
             foreach (var file in files)
             {
                 try
@@ -50,50 +55,50 @@ public class MemoryCleaner
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[MemoryCleaner] åŠ è½½å¤±è´¥: {Path.GetFileName(file)}, {ex.Message}");
+                    Console.WriteLine($"[MemoryCleaner] ¼ÓÔØÊ§°Ü: {Path.GetFileName(file)}, {ex.Message}");
                 }
             }
         }
 
         if (allRecords.Count == 0)
         {
-            Console.WriteLine("[MemoryCleaner] æ²¡æœ‰æ‰¾åˆ°è®¤çŸ¥è®°å½•");
+            Console.WriteLine("[MemoryCleaner] Ã»ÓĞÕÒµ½ÈÏÖª¼ÇÂ¼");
             return 0;
         }
 
-        Console.WriteLine($"[MemoryCleaner] åŠ è½½äº† {allRecords.Count} æ¡è®¤çŸ¥è®°å½•");
+        Console.WriteLine($"[MemoryCleaner] ¼ÓÔØÁË {allRecords.Count} ÌõÈÏÖª¼ÇÂ¼");
 
-        // ===== 2. æ‰¹é‡é‡ç®—æ‰€æœ‰æƒé‡ =====
-        Console.WriteLine("[MemoryCleaner] å¼€å§‹æ‰¹é‡é‡ç®—æƒé‡...");
+        // ===== 2. ÅúÁ¿ÖØËãËùÓĞÈ¨ÖØ =====
+        Console.WriteLine("[MemoryCleaner] ¿ªÊ¼ÅúÁ¿ÖØËãÈ¨ÖØ...");
         foreach (var record in allRecords)
         {
             record.Weight = WeightCalculator.Calculate(record.CreatedAt, record.LastAccessAt);
             await SaveCognitiveRecord(record);
         }
-        Console.WriteLine("[MemoryCleaner] æƒé‡é‡ç®—å®Œæˆ");
+        Console.WriteLine("[MemoryCleaner] È¨ÖØÖØËãÍê³É");
 
-        // ===== 3. æ‰¾å‡ºéœ€è¦æ¸…ç†çš„è®°å½• =====
+        // ===== 3. ÕÒ³öĞèÒªÇåÀíµÄ¼ÇÂ¼ =====
         var toClean = allRecords
             .Where(r => r.Weight < _minWeight && r.CreatedAt < cutoffDate)
             .ToList();
 
-        Console.WriteLine($"[MemoryCleaner] æ‰¾åˆ° {toClean.Count} æ¡å¾…æ¸…ç†è®°å½•ï¼ˆæƒé‡ < {_minWeight} ä¸”è¶…è¿‡ {_minAgeDays} å¤©ï¼‰");
+        Console.WriteLine($"[MemoryCleaner] ÕÒµ½ {toClean.Count} Ìõ´ıÇåÀí¼ÇÂ¼£¨È¨ÖØ < {_minWeight} ÇÒ³¬¹ı {_minAgeDays} Ìì£©");
 
         if (toClean.Count == 0)
         {
-            Console.WriteLine("[MemoryCleaner] æ²¡æœ‰éœ€è¦æ¸…ç†çš„è®°å½•");
+            Console.WriteLine("[MemoryCleaner] Ã»ÓĞĞèÒªÇåÀíµÄ¼ÇÂ¼");
             return 0;
         }
 
-        // ===== 4. æ‰§è¡Œæ¸…ç† =====
+        // ===== 4. Ö´ĞĞÇåÀí =====
         foreach (var record in toClean.Take(_batchSize))
         {
             var recordPath = Path.Combine(_cognitivePath, $"{record.Id}.json");
-            await ArchiveRecord(recordPath, record.Id, "è®¤çŸ¥");
+            await ArchiveRecord(recordPath, record.Id, "ÈÏÖª");
             cleaned++;
         }
 
-        // ===== 5. å…³è”æ¸…ç†æ€è€ƒå±‚è®°å½• =====
+        // ===== 5. ¹ØÁªÇåÀíË¼¿¼²ã¼ÇÂ¼ =====
         if (Directory.Exists(_thinkingPath))
         {
             var chatDirs = Directory.GetDirectories(Path.Combine(_thinkingPath, "chat"));
@@ -101,7 +106,7 @@ public class MemoryCleaner
             {
                 if (cleaned >= _batchSize) break;
 
-                var files = Directory.GetFiles(dir, "è®°å½•_*.json");
+                var files = Directory.GetFiles(dir, "¼ÇÂ¼_*.json");
                 foreach (var file in files)
                 {
                     if (cleaned >= _batchSize) break;
@@ -112,23 +117,23 @@ public class MemoryCleaner
                         var chatRecord = JsonSerializer.Deserialize<ChatRecord>(json);
                         if (chatRecord == null) continue;
 
-                        // æ£€æŸ¥æ˜¯å¦å…³è”åˆ°å·²æ¸…ç†çš„è®¤çŸ¥è®°å½•
+                        // ¼ì²éÊÇ·ñ¹ØÁªµ½ÒÑÇåÀíµÄÈÏÖª¼ÇÂ¼
                         var shouldClean = toClean.Any(r => r.RecordId == Path.GetFileNameWithoutExtension(file));
                         if (shouldClean)
                         {
-                            await ArchiveRecord(file, Path.GetFileNameWithoutExtension(file), "å¯¹è¯");
+                            await ArchiveRecord(file, Path.GetFileNameWithoutExtension(file), "¶Ô»°");
                             cleaned++;
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[MemoryCleaner] å¤„ç†å¤±è´¥: {Path.GetFileName(file)}, {ex.Message}");
+                        Console.WriteLine($"[MemoryCleaner] ´¦ÀíÊ§°Ü: {Path.GetFileName(file)}, {ex.Message}");
                     }
                 }
             }
         }
 
-        Console.WriteLine($"[MemoryCleaner] æ¸…ç†å®Œæˆï¼Œå…± {cleaned} æ¡è®°å½•");
+        Console.WriteLine($"[MemoryCleaner] ÇåÀíÍê³É£¬¹² {cleaned} Ìõ¼ÇÂ¼");
         return cleaned;
     }
 
@@ -141,7 +146,7 @@ public class MemoryCleaner
         if (File.Exists(destPath))
             File.Delete(destPath);
         File.Move(filePath, destPath);
-        Console.WriteLine($"[MemoryCleaner] å·²å½’æ¡£: {type} {id}");
+        Console.WriteLine($"[MemoryCleaner] ÒÑ¹éµµ: {type} {id}");
         await Task.CompletedTask;
     }
 

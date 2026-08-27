@@ -1,4 +1,9 @@
-ï»¿using Microsoft.Data.Sqlite;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using Microsoft.Data.Sqlite;
 using System.ComponentModel;
 using System.Text.Json;
 using Wangdefa.AgentMemory.Interfaces;
@@ -14,7 +19,7 @@ public class SQLiteTools : ISQLiteTools
         _dbPath = Path.Combine(basePath, "wangdefa_memory.db");
     }
 
-    [Description("å†™å…¥å…¨é‡è®°å½•åˆ° SQLite æ€è€ƒå±‚")]
+    [Description("Ğ´ÈëÈ«Á¿¼ÇÂ¼µ½ SQLite Ë¼¿¼²ã")]
     public async Task<string> WriteRecord(
         string userInput,
         string agentResponse,
@@ -30,7 +35,7 @@ public class SQLiteTools : ISQLiteTools
         {
             if (string.IsNullOrEmpty(_dbPath))
             {
-                throw new InvalidOperationException("SQLiteTools æœªåˆå§‹åŒ–ï¼Œè¯·å…ˆè°ƒç”¨ SetBasePath");
+                throw new InvalidOperationException("SQLiteTools Î´³õÊ¼»¯£¬ÇëÏÈµ÷ÓÃ SetBasePath");
             }
 
             var connectionString = $"Data Source={_dbPath}";
@@ -80,11 +85,11 @@ public class SQLiteTools : ISQLiteTools
             insertCmd.Parameters.AddWithValue("@created_at", DateTime.UtcNow.ToString("o"));
 
             await insertCmd.ExecuteNonQueryAsync();
-            return $"âœ… å…¨é‡è®°å½•å·²å†™å…¥ SQLiteï¼ŒtopicId: {topicId}";
+            return $"? È«Á¿¼ÇÂ¼ÒÑĞ´Èë SQLite£¬topicId: {topicId}";
         }
         catch (Exception ex)
         {
-            return $"âš ï¸ å†™å…¥ SQLite å¤±è´¥: {ex.Message}";
+            return $"?? Ğ´Èë SQLite Ê§°Ü: {ex.Message}";
         }
     }
 }

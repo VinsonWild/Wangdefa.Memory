@@ -1,3 +1,8 @@
+﻿// Copyright © 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Wangdefa.AgentMemory.FeatureEngine.Models;
@@ -11,6 +16,10 @@ namespace Wangdefa.AgentMemory.FeatureEngine;
 public class TagDictionary
 {
     private readonly FeatureEngineDb _db;
+    public const string StatusActive = "active";
+    public const string StatusUnexamined = "unexamined";
+    public const string StatusMerged = "merged";
+    public const string StatusDeprecated = "deprecated";
     private readonly Dictionary<string, TagEntry> _tagCache;
     private readonly Dictionary<string, TagEntry> _codeCache;
     private int _nextSeq;
@@ -170,8 +179,6 @@ public class TagDictionary
         // ★ 不自动新增，返回 null
         return null;
     }
-
-
 
     /// <summary>
     /// 用 tag + definitions 做子串匹配，返回匹配的 code
@@ -337,7 +344,7 @@ public class TagDictionary
         return entry;
     }
 
-    public TagEntry AddWithSynonyms(string tag, string tagType, string definition, string dimension, string source, string[]? synonyms = null)
+    public TagEntry AddWithSynonyms(string tag, string tagType, string definition, string dimension, string source, string[]? synonyms = null, string status = "unexamined")
     {
         var existing = LoadFromDb(tag);
         if (existing != null)
@@ -371,7 +378,7 @@ public class TagDictionary
             RelatedCodes = "[]",
             Synonyms = synonymsJson,
             Source = source,
-            Status = "active",
+            Status = status,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
@@ -379,7 +386,7 @@ public class TagDictionary
         var cmd = conn.CreateCommand();
         cmd.CommandText = @"
             INSERT INTO tag_dictionary (tag, code, tag_type, definition, dimensions, related_codes, synonyms, source, status)
-            VALUES (@tag, @code, @type, @def, @dims, '[]', @synonyms, @source, 'active')
+            VALUES (@tag, @code, @type, @def, @dims, '[]', @synonyms, @source, @status)
         ";
         cmd.Parameters.AddWithValue("@tag", tag);
         cmd.Parameters.AddWithValue("@code", code);
@@ -388,6 +395,7 @@ public class TagDictionary
         cmd.Parameters.AddWithValue("@dims", dimsJson);
         cmd.Parameters.AddWithValue("@synonyms", synonymsJson);
         cmd.Parameters.AddWithValue("@source", source);
+        cmd.Parameters.AddWithValue("@status", status);
         cmd.ExecuteNonQuery();
 
         cmd.CommandText = "SELECT last_insert_rowid()";
@@ -396,26 +404,11 @@ public class TagDictionary
         _tagCache[tag] = entry;
         _codeCache[code] = entry;
 
-        if (synonyms != null && synonyms.Length > 0)
-        {
-            foreach (var syn in synonyms)
-            {
-                if (string.IsNullOrEmpty(syn)) continue;
-                var synEntry = LoadFromDb(syn);
-                if (synEntry != null)
-                {
-                    MergeSynonyms(synEntry.Code, new[] { tag });
-                }
-                else
-                {
-                    AddWithSynonyms(syn, tagType, "", dimension, "auto", new[] { tag });
-                }
-            }
-        }
-
         Console.WriteLine($"[TagDictionary] 新增标签: {tag} → {code}, 近义词: {synonymsJson}");
         return entry;
     }
+
+    // 近义词只保存到主标签的 synonyms 字段中，不创建独立标签
 
     public void MergeSynonyms(string code, string[] newSynonyms)
     {
@@ -673,5 +666,98 @@ public class TagDictionary
         }
 
         return results;
+    }
+
+    // ============================================================
+    // 标签合并相关方法
+    // ============================================================
+
+    /// <summary>
+    /// 获取本轮新建的 unexamined 标签（按标签名列表）
+    /// </summary>
+    public List<TagEntry> GetUnexaminedTagsByNames(List<string> tagNames)
+    {
+        if (tagNames == null || tagNames.Count == 0) return new List<TagEntry>();
+        LoadAll();
+        return _tagCache.Values
+            .Where(e => tagNames.Contains(e.Tag) && e.Status == StatusUnexamined)
+            .ToList();
+    }
+
+    /// <summary>
+    /// 按 tag 查找所有 active 标签（用于同名合并候选）
+    /// </summary>
+    public List<TagEntry> FindActiveByName(string tag)
+    {
+        LoadAll();
+        return _tagCache.Values
+            .Where(e => e.Tag == tag && e.Status == StatusActive)
+            .ToList();
+    }
+
+    /// <summary>
+    /// 计算两个标签的综合相似度（definition 0.5 + synonyms 0.5）
+    /// </summary>
+    public double CalculateSimilarity(TagEntry a, TagEntry b)
+    {
+        if (a == null || b == null) return 0;
+
+        var defSim = JaccardSimilarity(a.Definition ?? "", b.Definition ?? "");
+        var synA = JsonSerializer.Deserialize<List<string>>(a.Synonyms ?? "[]") ?? new List<string>();
+        var synB = JsonSerializer.Deserialize<List<string>>(b.Synonyms ?? "[]") ?? new List<string>();
+        var synSim = JaccardSimilarity(synA, synB);
+
+        return 0.5 * defSim + 0.5 * synSim;
+    }
+
+    private double JaccardSimilarity(string textA, string textB)
+    {
+        if (string.IsNullOrEmpty(textA) || string.IsNullOrEmpty(textB)) return 0;
+        var wordsA = Tokenize(textA);
+        var wordsB = Tokenize(textB);
+        if (wordsA.Count == 0 || wordsB.Count == 0) return 0;
+        var intersection = wordsA.Intersect(wordsB).Count();
+        var union = wordsA.Union(wordsB).Count();
+        return union == 0 ? 0 : (double)intersection / union;
+    }
+
+    private double JaccardSimilarity(List<string> listA, List<string> listB)
+    {
+        if (listA == null || listB == null || listA.Count == 0 || listB.Count == 0) return 0;
+        var intersection = listA.Intersect(listB).Count();
+        var union = listA.Union(listB).Count();
+        return union == 0 ? 0 : (double)intersection / union;
+    }
+
+    private HashSet<string> Tokenize(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return new HashSet<string>();
+
+        var separators = new[] { ' ', '，', '。', '、', '；', '：', '！', '？', ',', '.', ';', ':', '!', '?', '\n', '\r', '\t' };
+        var words = text.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+
+        var stopWords = new HashSet<string> { "的", "了", "是", "在", "和", "与", "或", "等", "及", "于", "之", "而", "以", "为", "有", "从", "到", "对", "把", "被", "让", "给", "去", "来", "上", "下", "中", "内", "外", "前", "后", "左", "右" };
+        return new HashSet<string>(words.Where(w => w.Length >= 2 && !stopWords.Contains(w)));
+    }
+
+    /// <summary>
+    /// 激活标签（unexamined → active）
+    /// </summary>
+    public void Activate(string code)
+    {
+        var entry = GetEntryByCode(code);
+        if (entry == null) return;
+
+        entry.Status = StatusActive;
+
+        using var conn = _db.GetConnection();
+        conn.Open();
+        var cmd = conn.CreateCommand();
+        cmd.CommandText = "UPDATE tag_dictionary SET status = @status, updated_at = CURRENT_TIMESTAMP WHERE code = @code";
+        cmd.Parameters.AddWithValue("@status", StatusActive);
+        cmd.Parameters.AddWithValue("@code", code);
+        cmd.ExecuteNonQuery();
+
+        Console.WriteLine($"[TagDictionary] 标签已激活: {entry.Tag} → {code}");
     }
 }

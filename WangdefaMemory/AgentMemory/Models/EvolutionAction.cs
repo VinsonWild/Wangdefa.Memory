@@ -1,7 +1,12 @@
-ï»¿namespace Wangdefa.AgentMemory.Models;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+namespace Wangdefa.AgentMemory.Models;
 
 /// <summary>
-/// æ ‡ç­¾æ¼”åŒ–æ“ä½œ â€” ç”± C çº¿åˆ¤æ–­ï¼Œåœ¨è®°å¿†å†™å…¥åæ‰§è¡Œ
+/// ±êÇ©Ñİ»¯²Ù×÷ ¡ª ÓÉ C ÏßÅĞ¶Ï£¬ÔÚ¼ÇÒäĞ´ÈëºóÖ´ĞĞ
 /// </summary>
 public class EvolutionAction
 {

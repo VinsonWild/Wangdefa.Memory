@@ -1,10 +1,15 @@
-锘縰sing Wangdefa.AgentMemory.Models;
+// Copyright 漏 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using Wangdefa.AgentMemory.Models;
 using Wangdefa.AgentMemory.Thinking.Events;
 
 namespace Wangdefa.AgentMemory.Interfaces;
 
 /// <summary>
-/// 浜嬩欢瀛樺偍鎺ュ彛
+/// 事件存储接口
 /// </summary>
 public interface IEventStore
 {

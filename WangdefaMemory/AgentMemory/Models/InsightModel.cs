@@ -1,5 +1,10 @@
-ï»¿// ================================================================
-// InsightModel.cs â€” è§è¯†ç»“æ„ï¼ˆå«åå¥½ï¼‰
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+// ================================================================
+// InsightModel.cs ¡ª ¼ûÊ¶½á¹¹£¨º¬Æ«ºÃ£©
 // ================================================================
 
 using System.Text.Json.Serialization;
@@ -8,7 +13,7 @@ using System.Collections.Generic;
 namespace Wangdefa.AgentMemory.Models;
 
 /// <summary>
-/// å…³ç³»æ ‡ç­¾ - å¸¦å¼ºåº¦å€¼ï¼ˆ0-1ï¼‰
+/// ¹ØÏµ±êÇ© - ´øÇ¿¶ÈÖµ£¨0-1£©
 /// </summary>
 public class RelationTag
 {
@@ -23,7 +28,7 @@ public class RelationTag
 }
 
 /// <summary>
-/// ç”¨æˆ·åå¥½æ¡ç›®
+/// ÓÃ»§Æ«ºÃÌõÄ¿
 /// </summary>
 public class PreferenceEntry
 {
@@ -38,19 +43,19 @@ public class PreferenceEntry
 }
 
 /// <summary>
-/// è§è¯†ç»“æ„ - çŸ¥é“"æ€ä¹ˆç†è§£å®ƒ"
+/// ¼ûÊ¶½á¹¹ - ÖªµÀ"ÔõÃ´Àí½âËü"
 /// </summary>
 public class InsightModel
 {
-    [JsonPropertyName("å†…å®¹æ ‡ç­¾")]
+    [JsonPropertyName("ÄÚÈİ±êÇ©")]
     public string[] ContentTags { get; set; } = Array.Empty<string>();
 
-    [JsonPropertyName("å…³ç³»æ ‡ç­¾")]
+    [JsonPropertyName("¹ØÏµ±êÇ©")]
     public List<RelationTag> RelationTags { get; set; } = new();
 
-    [JsonPropertyName("æ‘˜è¦")]
+    [JsonPropertyName("ÕªÒª")]
     public string Summary { get; set; } = "";
 
-    [JsonPropertyName("åå¥½")]
+    [JsonPropertyName("Æ«ºÃ")]
     public List<PreferenceEntry> Preferences { get; set; } = new();
 }

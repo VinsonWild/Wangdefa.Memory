@@ -1,15 +1,20 @@
-ï»¿using Wangdefa.AgentMemory.Models;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using Wangdefa.AgentMemory.Models;
 
 namespace Wangdefa.AgentMemory.Models;
 
 /// <summary>
-/// å¯¹è¯åˆ†æ â€” ä»å•æ¬¡å¯¹è¯ä¸­æç‚¼çš„åå¥½/è¡Œä¸ºæ¨¡å¼/å†³ç­–/ä¹ æƒ¯
+/// ¶Ô»°·ÖÎö ¡ª ´Óµ¥´Î¶Ô»°ÖĞÌáÁ¶µÄÆ«ºÃ/ĞĞÎªÄ£Ê½/¾ö²ß/Ï°¹ß
 /// </summary>
 public class DialogueAnalysis
 {
     public string Id { get; set; } = "";
     public string TopicId { get; set; } = "";
-    public string Type { get; set; } = "";           // åå¥½/è¡Œä¸ºæ¨¡å¼/å†³ç­–/ä¹ æƒ¯
+    public string Type { get; set; } = "";           // Æ«ºÃ/ĞĞÎªÄ£Ê½/¾ö²ß/Ï°¹ß
     public string Summary { get; set; } = "";
     public DialogueAnalysisDetails Details { get; set; } = new();
     public string[] Tags { get; set; } = Array.Empty<string>();
@@ -29,7 +34,7 @@ public class DialogueAnalysisDetails
 }
 
 /// <summary>
-/// LLM æå–ç»“æœï¼ˆä¸­é—´æ ¼å¼ï¼‰
+/// LLM ÌáÈ¡½á¹û£¨ÖĞ¼ä¸ñÊ½£©
 /// </summary>
 public class DialogueAnalysisResult
 {

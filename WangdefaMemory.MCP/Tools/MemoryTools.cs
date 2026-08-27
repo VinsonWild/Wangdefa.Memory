@@ -1,4 +1,9 @@
-ï»¿using ModelContextProtocol.Server;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.Text.Json;
 using Wangdefa.AgentMemory;
@@ -28,7 +33,7 @@ public class MemoryTools
 
             if (string.IsNullOrEmpty(apiKey))
             {
-                throw new InvalidOperationException("æ— æ³•è¯»å– DEEPSEEK_API_KEYï¼Œè¯·æ£€æŸ¥ .credentials.yaml æ–‡ä»¶");
+                throw new InvalidOperationException("ÎŞ·¨¶ÁÈ¡ DEEPSEEK_API_KEY£¬Çë¼ì²é .credentials.yaml ÎÄ¼ş");
             }
 
             _chatService = new McpChatService(apiKey);
@@ -78,7 +83,7 @@ public class MemoryTools
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[MemoryTools] è¯»å–å‡­æ®æ–‡ä»¶å¤±è´¥: {ex.Message}");
+            Console.Error.WriteLine($"[MemoryTools] ¶ÁÈ¡Æ¾¾İÎÄ¼şÊ§°Ü: {ex.Message}");
         }
 
         return null;
@@ -86,8 +91,8 @@ public class MemoryTools
 
     [McpServerTool]
     public static async Task<string> ProcessMessage(
-        [Description("ç”¨æˆ·è¾“å…¥çš„æ¶ˆæ¯")] string input,
-        [Description("ä¼šè¯IDï¼Œç”¨äºéš”ç¦»ä¸åŒä¼šè¯çš„è®°å¿†")] string? sessionId = null)
+        [Description("ÓÃ»§ÊäÈëµÄÏûÏ¢")] string input,
+        [Description("»á»°ID£¬ÓÃÓÚ¸ôÀë²»Í¬»á»°µÄ¼ÇÒä")] string? sessionId = null)
     {
         try
         {
@@ -123,7 +128,7 @@ public class MemoryTools
         {
             var errorResponse = new
             {
-                error = $"å¤„ç†æ¶ˆæ¯å¤±è´¥: {ex.Message}",
+                error = $"´¦ÀíÏûÏ¢Ê§°Ü: {ex.Message}",
                 stackTrace = ex.StackTrace
             };
             return JsonSerializer.Serialize(errorResponse, new JsonSerializerOptions { WriteIndented = true });
@@ -132,11 +137,11 @@ public class MemoryTools
 
     [McpServerTool]
     public static async Task<string> SaveMemory(
-        [Description("ç”¨æˆ·åŸå§‹è¾“å…¥")] string userInput,
-        [Description("Agentçš„å›å¤å†…å®¹")] string agentResponse,
-        [Description("å¡ç‰‡IDï¼ˆç”± ProcessMessage è¿”å›çš„ frameIdï¼‰")] string cardId,
-        [Description("çŠ¶æ€ï¼šcompleted / interrupted / failed")] string status = "completed",
-        [Description("é”™è¯¯ä¿¡æ¯ï¼ˆå½“çŠ¶æ€ä¸º failed æ—¶å¯é€‰ï¼‰")] string? errorMessage = null)
+        [Description("ÓÃ»§Ô­Ê¼ÊäÈë")] string userInput,
+        [Description("AgentµÄ»Ø¸´ÄÚÈİ")] string agentResponse,
+        [Description("¿¨Æ¬ID£¨ÓÉ ProcessMessage ·µ»ØµÄ frameId£©")] string cardId,
+        [Description("×´Ì¬£ºcompleted / interrupted / failed")] string status = "completed",
+        [Description("´íÎóĞÅÏ¢£¨µ±×´Ì¬Îª failed Ê±¿ÉÑ¡£©")] string? errorMessage = null)
     {
         try
         {
@@ -153,7 +158,7 @@ public class MemoryTools
             var result = new
             {
                 success = true,
-                message = $"è®°å¿†å·²è¡¥å…¨å¹¶ä¿å­˜ï¼ŒcardId: {cardId}ï¼ŒçŠ¶æ€: {status}"
+                message = $"¼ÇÒäÒÑ²¹È«²¢±£´æ£¬cardId: {cardId}£¬×´Ì¬: {status}"
             };
             return JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
         }
@@ -162,7 +167,7 @@ public class MemoryTools
             var errorResult = new
             {
                 success = false,
-                error = $"è®°å¿†è¡¥å…¨å¤±è´¥: {ex.Message}"
+                error = $"¼ÇÒä²¹È«Ê§°Ü: {ex.Message}"
             };
             return JsonSerializer.Serialize(errorResult, new JsonSerializerOptions { WriteIndented = true });
         }

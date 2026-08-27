@@ -1,4 +1,9 @@
-ï»¿using System.Text.Json;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using System.Text.Json;
 using Wangdefa.AgentMemory.Interfaces;
 using Wangdefa.AgentMemory.Models;
 using Wangdefa.AgentMemory.Thinking;
@@ -6,7 +11,7 @@ using Wangdefa.AgentMemory.Thinking;
 namespace Wangdefa.AgentMemory.Signal;
 
 /// <summary>
-/// è®°å¿†åˆå¹¶å™¨ - å°†æ—§å¯¹è¯è®°å½•æ‰“åŒ…æˆå½’æ¡£æ–‡ä»¶
+/// ¼ÇÒäºÏ²¢Æ÷ - ½«¾É¶Ô»°¼ÇÂ¼´ò°ü³É¹éµµÎÄ¼ş
 /// </summary>
 public class MemoryMerger
 {
@@ -20,7 +25,7 @@ public class MemoryMerger
     }
 
     /// <summary>
-    /// åˆå¹¶æŒ‡å®šè¯é¢˜ä¸‹è¶…è¿‡æŒ‡å®šå¤©æ•°çš„è®°å½•
+    /// ºÏ²¢Ö¸¶¨»°ÌâÏÂ³¬¹ıÖ¸¶¨ÌìÊıµÄ¼ÇÂ¼
     /// </summary>
     public async Task<int> MergeTopic(string topicId, int daysThreshold = 90)
     {
@@ -28,7 +33,7 @@ public class MemoryMerger
         if (!Directory.Exists(chatPath)) return 0;
 
         var cutoff = DateTime.Now.AddDays(-daysThreshold);
-        var files = Directory.GetFiles(chatPath, "è®°å½•_*.json")
+        var files = Directory.GetFiles(chatPath, "¼ÇÂ¼_*.json")
             .Select(f => new
             {
                 Path = f,
@@ -40,15 +45,15 @@ public class MemoryMerger
 
         if (files.Count == 0)
         {
-            Console.WriteLine($"ğŸ“­ è¯é¢˜ {topicId} æ²¡æœ‰éœ€è¦åˆå¹¶çš„è®°å½•ï¼ˆ{daysThreshold}å¤©å‰ï¼‰");
+            Console.WriteLine($"?? »°Ìâ {topicId} Ã»ÓĞĞèÒªºÏ²¢µÄ¼ÇÂ¼£¨{daysThreshold}ÌìÇ°£©");
             return 0;
         }
 
-        // ç”Ÿæˆå½’æ¡£æ–‡ä»¶å
+        // Éú³É¹éµµÎÄ¼şÃû
         var period = $"{DateTime.Now.Year}Q{(DateTime.Now.Month - 1) / 3 + 1}";
         var archivePath = Path.Combine(chatPath, $"archive_{period}.json");
 
-        // è¯»å–å·²æœ‰å½’æ¡£
+        // ¶ÁÈ¡ÒÑÓĞ¹éµµ
         ArchiveFile? archive = null;
         if (File.Exists(archivePath))
         {
@@ -67,7 +72,7 @@ public class MemoryMerger
             };
         }
 
-        // æŠŠæ—§è®°å½•åŠ å…¥å½’æ¡£
+        // °Ñ¾É¼ÇÂ¼¼ÓÈë¹éµµ
         var mergedCount = 0;
         foreach (var file in files)
         {
@@ -75,7 +80,7 @@ public class MemoryMerger
             {
                 archive.Records.Add(file.Record);
                 mergedCount++;
-                // è½¯åˆ é™¤ï¼šæ”¹ä¸º .bak æ‰©å±•å
+                // ÈíÉ¾³ı£º¸ÄÎª .bak À©Õ¹Ãû
                 var bakPath = file.Path + ".bak";
                 if (File.Exists(bakPath))
                     File.Delete(bakPath);
@@ -83,17 +88,17 @@ public class MemoryMerger
             }
         }
 
-        // å†™å›å½’æ¡£æ–‡ä»¶
+        // Ğ´»Ø¹éµµÎÄ¼ş
         archive.MergedAt = DateTime.Now;
         var options = new JsonSerializerOptions { WriteIndented = true };
         await File.WriteAllTextAsync(archivePath, JsonSerializer.Serialize(archive, options));
 
-        Console.WriteLine($"âœ… è¯é¢˜ {topicId} å·²åˆå¹¶ {mergedCount} æ¡è®°å½•åˆ° {archivePath}");
+        Console.WriteLine($"? »°Ìâ {topicId} ÒÑºÏ²¢ {mergedCount} Ìõ¼ÇÂ¼µ½ {archivePath}");
         return mergedCount;
     }
 
     /// <summary>
-    /// åˆå¹¶æ‰€æœ‰è¯é¢˜
+    /// ºÏ²¢ËùÓĞ»°Ìâ
     /// </summary>
     public async Task<int> MergeAllTopics(int daysThreshold = 90)
     {
@@ -109,12 +114,12 @@ public class MemoryMerger
             total += await MergeTopic(topicId, daysThreshold);
         }
 
-        Console.WriteLine($"âœ… å…¨éƒ¨åˆå¹¶å®Œæˆï¼Œå…±å¤„ç† {total} æ¡è®°å½•");
+        Console.WriteLine($"? È«²¿ºÏ²¢Íê³É£¬¹²´¦Àí {total} Ìõ¼ÇÂ¼");
         return total;
     }
 
     /// <summary>
-    /// æ¸…ç†å¤‡ä»½æ–‡ä»¶ï¼ˆç¡®è®¤åˆå¹¶æ— è¯¯åè°ƒç”¨ï¼‰
+    /// ÇåÀí±¸·İÎÄ¼ş£¨È·ÈÏºÏ²¢ÎŞÎóºóµ÷ÓÃ£©
     /// </summary>
     public void CleanBackups(string topicId)
     {
@@ -125,7 +130,7 @@ public class MemoryMerger
         foreach (var file in bakFiles)
         {
             File.Delete(file);
-            Console.WriteLine($"ğŸ—‘ï¸ å·²åˆ é™¤å¤‡ä»½: {Path.GetFileName(file)}");
+            Console.WriteLine($"??? ÒÑÉ¾³ı±¸·İ: {Path.GetFileName(file)}");
         }
     }
 }

@@ -1,9 +1,14 @@
-ï»¿using System.Text.Json;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using System.Text.Json;
 
 namespace Wangdefa.AgentMemory.Knowledge;
 
 /// <summary>
-/// çŸ¥è¯†ç´¢å¼• - æŒ‰è¯é¢˜å­˜å‚¨çŸ¥è¯†å•å…ƒçš„ç´¢å¼•
+/// ÖªÊ¶Ë÷Òı - °´»°Ìâ´æ´¢ÖªÊ¶µ¥ÔªµÄË÷Òı
 /// </summary>
 public class KnowledgeIndex
 {
@@ -66,7 +71,7 @@ public class KnowledgeIndex
     }
 
     /// <summary>
-    /// ä¿å­˜ç´¢å¼•æ•°æ®ï¼ˆå…¬å¼€æ–¹æ³•ï¼Œä¾› KnowledgeStore è°ƒç”¨ï¼‰
+    /// ±£´æË÷ÒıÊı¾İ£¨¹«¿ª·½·¨£¬¹© KnowledgeStore µ÷ÓÃ£©
     /// </summary>
     public async Task Save(string topicId, KnowledgeIndexData data)
     {

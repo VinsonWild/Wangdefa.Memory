@@ -1,9 +1,15 @@
-﻿// ================================================================
-// SummaryAnalyzer.cs — C 线：摘要分析（含偏好提取 + 反馈判断）
+﻿// Copyright © 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+// ================================================================
+// SummaryAnalyzer.cs — C 线：摘要分析（含偏好提取 + 反馈判断 + 标签合并）
 // ================================================================
 
 using System.Text.Json;
 using Wangdefa.AgentMemory.Cognitive;
+using Wangdefa.AgentMemory.FeatureEngine.Models;
 using Wangdefa.AgentMemory.Models;
 using Wangdefa.Contracts;
 using WangdefaMemory.AgentMemory;
@@ -25,7 +31,8 @@ public class SummaryAnalyzer
         string userInput,
         string agentResponse,
         StructuredTag[]? structuredTags = null,
-        StructuredTag[]? missingTags = null)
+        StructuredTag[]? missingTags = null,
+        List<TagEntry>? pendingTags = null)  // ★ 新增参数
     {
         Console.WriteLine("[SummaryAnalyzer] 执行 C 线摘要分析...");
 
@@ -37,11 +44,18 @@ public class SummaryAnalyzer
             ? string.Join(", ", missingTags.Select(t => $"{t.Tag}({t.Dimension})"))
             : "（无）";
 
+        // ★ 格式化 pending 标签
+        var pendingTagsText = pendingTags != null && pendingTags.Count > 0
+            ? string.Join("\n", pendingTags.Select(t =>
+                $"- {t.Tag}（释义：{t.Definition ?? "无"}，近义词：{t.Synonyms ?? "无"}）"))
+            : "（无待确认标签）";
+
         var prompt = _instruction
             .Replace("{userInput}", userInput)
             .Replace("{agentResponse}", agentResponse)
             .Replace("{structuredTags}", structuredTagsText)
-            .Replace("{missingTags}", missingTagsText);
+            .Replace("{missingTags}", missingTagsText)
+            .Replace("{pendingTags}", pendingTagsText);  // ★ 新增
 
         var reply = await _chatService.ChatAsync(prompt);
 
@@ -159,6 +173,16 @@ public class SummaryAnalyzer
                 });
                 Console.WriteLine($"[SummaryAnalyzer] 反馈判断: {status} - {reason}");
             }
+        }
+
+        // ===== ★ 解析标签合并决策 =====
+        if (root.TryGetProperty("pending_tags_decision", out var pendingDecision) && pendingDecision.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var prop in pendingDecision.EnumerateObject())
+            {
+                result.PendingTagsDecision[prop.Name] = prop.Value.GetString() ?? "";
+            }
+            Console.WriteLine($"[SummaryAnalyzer] 解析到 {result.PendingTagsDecision.Count} 个标签合并决策");
         }
 
         // ===== 填充标签 =====

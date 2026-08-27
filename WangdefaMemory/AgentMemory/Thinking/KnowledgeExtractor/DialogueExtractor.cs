@@ -1,11 +1,16 @@
-ï»¿using System.Text.Json;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using System.Text.Json;
 using Wangdefa.AgentMemory.Models;
 using Wangdefa.Contracts;
 
 namespace Wangdefa.AgentMemory.Thinking.KnowledgeExtractor;
 
 /// <summary>
-/// å¯¹è¯æç‚¼å™¨ - ä»å¯¹è¯è®°å½•ä¸­æå–è¡Œä¸º/åå¥½/å†³ç­–
+/// ¶Ô»°ÌáÁ¶Æ÷ - ´Ó¶Ô»°¼ÇÂ¼ÖĞÌáÈ¡ĞĞÎª/Æ«ºÃ/¾ö²ß
 /// </summary>
 public class DialogueExtractor
 {
@@ -13,11 +18,11 @@ public class DialogueExtractor
 
     public DialogueExtractor(IChatService chatService)
     {
-        _chatService = chatService ?? throw new ArgumentNullException(nameof(chatService), "DialogueExtractor å¿…é¡»é…ç½® ChatService");
+        _chatService = chatService ?? throw new ArgumentNullException(nameof(chatService), "DialogueExtractor ±ØĞëÅäÖÃ ChatService");
     }
 
     /// <summary>
-    /// ä»å•æ¡å¯¹è¯äº‹ä»¶ä¸­æå–æ´å¯Ÿ
+    /// ´Óµ¥Ìõ¶Ô»°ÊÂ¼şÖĞÌáÈ¡¶´²ì
     /// </summary>
     public async Task<DialogueAnalysis?> ExtractAsync(EventModel evt)
     {
@@ -31,34 +36,34 @@ public class DialogueExtractor
         try
         {
             var prompt = $@"
-åˆ†æä»¥ä¸‹å¯¹è¯ï¼Œæå–ç”¨æˆ·çš„è¡Œä¸ºæ¨¡å¼ã€åå¥½ã€å†³ç­–æˆ–ä¹ æƒ¯ã€‚å¦‚æœæ²¡æœ‰å¯æå–çš„çŸ¥è¯†ï¼Œè¿”å› nullã€‚
+·ÖÎöÒÔÏÂ¶Ô»°£¬ÌáÈ¡ÓÃ»§µÄĞĞÎªÄ£Ê½¡¢Æ«ºÃ¡¢¾ö²ß»òÏ°¹ß¡£Èç¹ûÃ»ÓĞ¿ÉÌáÈ¡µÄÖªÊ¶£¬·µ»Ø null¡£
 
-ç”¨æˆ·è¾“å…¥ï¼š{userInput}
-Agent å›å¤ï¼š{agentResponse}
-è¯é¢˜IDï¼š{topicId}
+ÓÃ»§ÊäÈë£º{userInput}
+Agent »Ø¸´£º{agentResponse}
+»°ÌâID£º{topicId}
 
-è¿”å› JSON æ ¼å¼ï¼š
+·µ»Ø JSON ¸ñÊ½£º
 {{
-    ""type"": ""è¡Œä¸ºæ¨¡å¼/åå¥½/å†³ç­–/ä¹ æƒ¯"",
-    ""summary"": ""ä¸€å¥è¯æ€»ç»“è¿™ä¸ªçŸ¥è¯†"",
+    ""type"": ""ĞĞÎªÄ£Ê½/Æ«ºÃ/¾ö²ß/Ï°¹ß"",
+    ""summary"": ""Ò»¾ä»°×Ü½áÕâ¸öÖªÊ¶"",
     ""details"": {{
-        ""trigger"": ""è§¦å‘æ¡ä»¶"",
-        ""action"": ""å…·ä½“è¡Œä¸º"",
-        ""result"": ""ç»“æœæˆ–å½±å“""
+        ""trigger"": ""´¥·¢Ìõ¼ş"",
+        ""action"": ""¾ßÌåĞĞÎª"",
+        ""result"": ""½á¹û»òÓ°Ïì""
     }},
-    ""tags"": [""æ ‡ç­¾1"", ""æ ‡ç­¾2"", ""æ ‡ç­¾3""],
+    ""tags"": [""±êÇ©1"", ""±êÇ©2"", ""±êÇ©3""],
     ""relation_tags"": [
-        {{ ""from"": ""æ¥æº"", ""to"": ""ç›®æ ‡"", ""strength"": 0.9 }}
+        {{ ""from"": ""À´Ô´"", ""to"": ""Ä¿±ê"", ""strength"": 0.9 }}
     ],
     ""confidence"": 0.8
 }}
 
-è¦æ±‚ï¼š
-- å¦‚æœå¯¹è¯åªæ˜¯é—²èŠã€æ— å®è´¨å†…å®¹ï¼Œè¿”å› null
-- æ ‡ç­¾ 2-4 ä¸ªï¼Œè¦èƒ½ä»£è¡¨è¿™ä¸ªçŸ¥è¯†çš„æ ¸å¿ƒ
-- å…³ç³»æ ‡ç­¾ 1-3 ä¸ªï¼Œå¸¦å¼ºåº¦å€¼ 0-1
-- ç½®ä¿¡åº¦è¡¨ç¤ºä½ æœ‰å¤šç¡®å®šè¿™ä¸ªçŸ¥è¯†æ˜¯æ­£ç¡®çš„
-- åªè¿”å› JSONï¼Œä¸è¦å…¶ä»–å†…å®¹";
+ÒªÇó£º
+- Èç¹û¶Ô»°Ö»ÊÇÏĞÁÄ¡¢ÎŞÊµÖÊÄÚÈİ£¬·µ»Ø null
+- ±êÇ© 2-4 ¸ö£¬ÒªÄÜ´ú±íÕâ¸öÖªÊ¶µÄºËĞÄ
+- ¹ØÏµ±êÇ© 1-3 ¸ö£¬´øÇ¿¶ÈÖµ 0-1
+- ÖÃĞÅ¶È±íÊ¾ÄãÓĞ¶àÈ·¶¨Õâ¸öÖªÊ¶ÊÇÕıÈ·µÄ
+- Ö»·µ»Ø JSON£¬²»ÒªÆäËûÄÚÈİ";
 
             var result = await _chatService.ChatAsync(prompt);
             if (string.IsNullOrEmpty(result)) return null;
@@ -72,7 +77,7 @@ Agent å›å¤ï¼š{agentResponse}
 
             return new DialogueAnalysis
             {
-                Id = $"åˆ†æ_{DateTime.Now:yyyyMMdd_HHmmss}",
+                Id = $"·ÖÎö_{DateTime.Now:yyyyMMdd_HHmmss}",
                 TopicId = topicId,
                 Type = extraction.Type,
                 Summary = extraction.Summary ?? "",
@@ -88,50 +93,50 @@ Agent å›å¤ï¼š{agentResponse}
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"âš ï¸ å¯¹è¯æç‚¼å¤±è´¥: {ex.Message}");
+            Console.WriteLine($"?? ¶Ô»°ÌáÁ¶Ê§°Ü: {ex.Message}");
             return null;
         }
     }
 
     /// <summary>
-    /// ä»å¤šæ¡å¯¹è¯è®°å½•ä¸­èšåˆæå–æ´å¯Ÿï¼ˆç”¨äºæ‰¹é‡å¤„ç†ï¼‰
+    /// ´Ó¶àÌõ¶Ô»°¼ÇÂ¼ÖĞ¾ÛºÏÌáÈ¡¶´²ì£¨ÓÃÓÚÅúÁ¿´¦Àí£©
     /// </summary>
     public async Task<DialogueAnalysis?> ExtractFromEvents(List<EventModel> events)
     {
         if (events.Count == 0) return null;
 
         var combinedInput = string.Join("\n---\n", events.Select((e, i) =>
-            $"è®°å½•{i + 1}:\nç”¨æˆ·ï¼š{e.Data.UserInput}\nAgentï¼š{e.Data.AgentResponse}"));
+            $"¼ÇÂ¼{i + 1}:\nÓÃ»§£º{e.Data.UserInput}\nAgent£º{e.Data.AgentResponse}"));
 
         var topicId = events.FirstOrDefault()?.TopicId ?? "default";
 
         try
         {
             var prompt = $@"
-åˆ†æä»¥ä¸‹ {events.Count} æ¡å¯¹è¯è®°å½•ï¼Œæå–ç”¨æˆ·çš„è¡Œä¸ºæ¨¡å¼ã€åå¥½ã€å†³ç­–æˆ–ä¹ æƒ¯ã€‚
+·ÖÎöÒÔÏÂ {events.Count} Ìõ¶Ô»°¼ÇÂ¼£¬ÌáÈ¡ÓÃ»§µÄĞĞÎªÄ£Ê½¡¢Æ«ºÃ¡¢¾ö²ß»òÏ°¹ß¡£
 
 {combinedInput}
 
-è¿”å› JSON æ ¼å¼ï¼š
+·µ»Ø JSON ¸ñÊ½£º
 {{
-    ""type"": ""è¡Œä¸ºæ¨¡å¼/åå¥½/å†³ç­–/ä¹ æƒ¯"",
-    ""summary"": ""ä¸€å¥è¯æ€»ç»“è¿™ä¸ªçŸ¥è¯†"",
+    ""type"": ""ĞĞÎªÄ£Ê½/Æ«ºÃ/¾ö²ß/Ï°¹ß"",
+    ""summary"": ""Ò»¾ä»°×Ü½áÕâ¸öÖªÊ¶"",
     ""details"": {{
-        ""trigger"": ""è§¦å‘æ¡ä»¶"",
-        ""action"": ""å…·ä½“è¡Œä¸º"",
-        ""result"": ""ç»“æœæˆ–å½±å“""
+        ""trigger"": ""´¥·¢Ìõ¼ş"",
+        ""action"": ""¾ßÌåĞĞÎª"",
+        ""result"": ""½á¹û»òÓ°Ïì""
     }},
-    ""tags"": [""æ ‡ç­¾1"", ""æ ‡ç­¾2"", ""æ ‡ç­¾3""],
+    ""tags"": [""±êÇ©1"", ""±êÇ©2"", ""±êÇ©3""],
     ""relation_tags"": [
-        {{ ""from"": ""æ¥æº"", ""to"": ""ç›®æ ‡"", ""strength"": 0.9 }}
+        {{ ""from"": ""À´Ô´"", ""to"": ""Ä¿±ê"", ""strength"": 0.9 }}
     ],
     ""confidence"": 0.8
 }}
 
-è¦æ±‚ï¼š
-- æå–è·¨è®°å½•çš„å…±åŒæ¨¡å¼
-- å¦‚æœæ— å…±åŒæ¨¡å¼ï¼Œè¿”å› null
-- åªè¿”å› JSONï¼Œä¸è¦å…¶ä»–å†…å®¹";
+ÒªÇó£º
+- ÌáÈ¡¿ç¼ÇÂ¼µÄ¹²Í¬Ä£Ê½
+- Èç¹ûÎŞ¹²Í¬Ä£Ê½£¬·µ»Ø null
+- Ö»·µ»Ø JSON£¬²»ÒªÆäËûÄÚÈİ";
 
             var result = await _chatService.ChatAsync(prompt);
             if (string.IsNullOrEmpty(result)) return null;
@@ -145,7 +150,7 @@ Agent å›å¤ï¼š{agentResponse}
 
             return new DialogueAnalysis
             {
-                Id = $"åˆ†æ_{DateTime.Now:yyyyMMdd_HHmmss}",
+                Id = $"·ÖÎö_{DateTime.Now:yyyyMMdd_HHmmss}",
                 TopicId = topicId,
                 Type = extraction.Type,
                 Summary = extraction.Summary ?? "",
@@ -161,7 +166,7 @@ Agent å›å¤ï¼š{agentResponse}
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"âš ï¸ æ‰¹é‡å¯¹è¯æç‚¼å¤±è´¥: {ex.Message}");
+            Console.WriteLine($"?? ÅúÁ¿¶Ô»°ÌáÁ¶Ê§°Ü: {ex.Message}");
             return null;
         }
     }

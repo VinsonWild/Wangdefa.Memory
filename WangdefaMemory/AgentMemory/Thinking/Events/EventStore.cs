@@ -1,11 +1,16 @@
-ï»¿using System.Text.Json;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using System.Text.Json;
 using Wangdefa.AgentMemory.Interfaces;
 using Wangdefa.AgentMemory.Models;
 
 namespace Wangdefa.AgentMemory.Thinking.Events;
 
 /// <summary>
-/// äº‹ä»¶å­˜å‚¨ â€” æŒ‰æ—¥æœŸåˆ†ç›®å½•ï¼Œä¸€ä¸ªäº‹ä»¶ä¸€ä¸ªæ–‡ä»¶
+/// ÊÂ¼ş´æ´¢ ¡ª °´ÈÕÆÚ·ÖÄ¿Â¼£¬Ò»¸öÊÂ¼şÒ»¸öÎÄ¼ş
 /// </summary>
 public class EventStore : IEventStore
 {
@@ -30,7 +35,7 @@ public class EventStore : IEventStore
     }
 
     /// <summary>
-    /// ä¿å­˜äº‹ä»¶
+    /// ±£´æÊÂ¼ş
     /// </summary>
     public async Task SaveAsync(EventModel evt)
     {
@@ -40,7 +45,7 @@ public class EventStore : IEventStore
     }
 
     /// <summary>
-    /// åŠ è½½å•ä¸ªäº‹ä»¶
+    /// ¼ÓÔØµ¥¸öÊÂ¼ş
     /// </summary>
     public async Task<EventModel?> LoadAsync(string eventId, DateTime? date = null)
     {
@@ -68,14 +73,14 @@ public class EventStore : IEventStore
     }
 
     /// <summary>
-    /// è·å–æŸå¤©çš„æ‰€æœ‰äº‹ä»¶
+    /// »ñÈ¡Ä³ÌìµÄËùÓĞÊÂ¼ş
     /// </summary>
     public async Task<List<EventModel>> GetDayEventsAsync(DateTime date)
     {
         var dayPath = GetDayPath(date);
         if (!Directory.Exists(dayPath)) return new List<EventModel>();
 
-        var files = Directory.GetFiles(dayPath, "äº‹ä»¶_*.json");
+        var files = Directory.GetFiles(dayPath, "ÊÂ¼ş_*.json");
         var events = new List<EventModel>();
 
         foreach (var file in files)
@@ -86,21 +91,21 @@ public class EventStore : IEventStore
                 var evt = JsonSerializer.Deserialize<EventModel>(content);
                 if (evt != null) events.Add(evt);
             }
-            catch { /* è·³è¿‡æŸåæ–‡ä»¶ */ }
+            catch { /* Ìø¹ıËğ»µÎÄ¼ş */ }
         }
 
         return events.OrderBy(e => e.Timestamp).ToList();
     }
 
     /// <summary>
-    /// è·å–æŸå¤©çš„äº‹ä»¶æ¦‚è§ˆï¼ˆä»…æ‘˜è¦ä¿¡æ¯ï¼Œä¸åŠ è½½å®Œæ•´å†…å®¹ï¼‰
+    /// »ñÈ¡Ä³ÌìµÄÊÂ¼ş¸ÅÀÀ£¨½öÕªÒªĞÅÏ¢£¬²»¼ÓÔØÍêÕûÄÚÈİ£©
     /// </summary>
     public async Task<List<EventSummary>> GetDaySummariesAsync(DateTime date)
     {
         var dayPath = GetDayPath(date);
         if (!Directory.Exists(dayPath)) return new List<EventSummary>();
 
-        var files = Directory.GetFiles(dayPath, "äº‹ä»¶_*.json");
+        var files = Directory.GetFiles(dayPath, "ÊÂ¼ş_*.json");
         var summaries = new List<EventSummary>();
 
         foreach (var file in files)
@@ -121,14 +126,14 @@ public class EventStore : IEventStore
                     Summary = root.GetProperty("Result").GetProperty("Summary").GetString() ?? ""
                 });
             }
-            catch { /* è·³è¿‡æŸåæ–‡ä»¶ */ }
+            catch { /* Ìø¹ıËğ»µÎÄ¼ş */ }
         }
 
         return summaries.OrderBy(s => s.Timestamp).ToList();
     }
 
     /// <summary>
-    /// è·å–çˆ¶äº‹ä»¶ä¸‹çš„æ‰€æœ‰å­æ­¥éª¤
+    /// »ñÈ¡¸¸ÊÂ¼şÏÂµÄËùÓĞ×Ó²½Öè
     /// </summary>
     public async Task<List<EventModel>> GetStepsAsync(string parentEventId)
     {
@@ -137,7 +142,7 @@ public class EventStore : IEventStore
 
         foreach (var dir in dirs)
         {
-            var files = Directory.GetFiles(dir, "äº‹ä»¶_*.json");
+            var files = Directory.GetFiles(dir, "ÊÂ¼ş_*.json");
             foreach (var file in files)
             {
                 try
@@ -155,7 +160,7 @@ public class EventStore : IEventStore
     }
 
     /// <summary>
-    /// å›å†™æç‚¼ç»“æœåˆ°äº‹ä»¶
+    /// »ØĞ´ÌáÁ¶½á¹ûµ½ÊÂ¼ş
     /// </summary>
     public async Task UpdateInsightAsync(string eventId, DialogueAnalysis insight)
     {
@@ -179,7 +184,7 @@ public class EventStore : IEventStore
     }
 
     /// <summary>
-    /// åˆ é™¤æŸå¤©çš„æ‰€æœ‰äº‹ä»¶
+    /// É¾³ıÄ³ÌìµÄËùÓĞÊÂ¼ş
     /// </summary>
     public void DeleteDay(DateTime date)
     {

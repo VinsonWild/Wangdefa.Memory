@@ -1,56 +1,61 @@
-ï»¿using Wangdefa.AgentMemory.Models;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using Wangdefa.AgentMemory.Models;
 
 namespace Wangdefa.AgentMemory.Models;
 
 /// <summary>
-/// ç»Ÿä¸€äº‹ä»¶æ¨¡å‹ â€” æ‰€æœ‰ç±»å‹äº‹ä»¶å…±ç”¨
+/// Í³Ò»ÊÂ¼şÄ£ĞÍ ¡ª ËùÓĞÀàĞÍÊÂ¼ş¹²ÓÃ
 /// </summary>
 public class EventModel
 {
     public string EventId { get; set; } = "";
     public string EventType { get; set; } = "";      // chat / file / action / task / system
     public string EventLevel { get; set; } = "point"; // point / step
-    public string? ParentEventId { get; set; }        // å¦‚æœæ˜¯ stepï¼ŒæŒ‡å‘çˆ¶ point
+    public string? ParentEventId { get; set; }        // Èç¹ûÊÇ step£¬Ö¸Ïò¸¸ point
     public string Mode { get; set; } = "wangdefa_full";
     public string TopicId { get; set; } = "";
     public DateTime Timestamp { get; set; }
 
-    // ===== æ„ŸçŸ¥ï¼ˆä» Harness è¾“å‡ºç›´æ¥å­˜å…¥ï¼‰ =====
+    // ===== ¸ĞÖª£¨´Ó Harness Êä³öÖ±½Ó´æÈë£© =====
     public PerceptionModel? Perception { get; set; }
 
     public EventData Data { get; set; } = new();
     public EventContext Context { get; set; } = new();
     public EventResult Result { get; set; } = new();
 
-    public string? CognitiveRecordId { get; set; }    // å…³è”è®¤çŸ¥å±‚
+    public string? CognitiveRecordId { get; set; }    // ¹ØÁªÈÏÖª²ã
     public string[] FeatureTags { get; set; } = Array.Empty<string>();
 
     /// <summary>
-    /// é—­ç¯äº§å‡ºï¼šä»äº‹ä»¶ä¸­æç‚¼çš„å¯¹è¯åˆ†æç»“æœ
+    /// ±Õ»·²ú³ö£º´ÓÊÂ¼şÖĞÌáÁ¶µÄ¶Ô»°·ÖÎö½á¹û
     /// </summary>
     public DialogueAnalysis? ExtractedInsight { get; set; }
 }
 
 public class EventData
 {
-    // å¯¹è¯
+    // ¶Ô»°
     public string? UserInput { get; set; }
     public string? AgentResponse { get; set; }
 
-    // æ–‡ä»¶
+    // ÎÄ¼ş
     public string? FilePath { get; set; }
     public string? FileName { get; set; }
     public string? FileAction { get; set; }           // upload / scan / open / save / delete
 
-    // è¡Œä¸º/ä»»åŠ¡
+    // ĞĞÎª/ÈÎÎñ
     public string? ActionType { get; set; }           // tool_call / button_click / mode_switch
     public string? TaskName { get; set; }
-    public List<EventStep>? Steps { get; set; }       // point ä¸‹çš„å­æ­¥éª¤
+    public List<EventStep>? Steps { get; set; }       // point ÏÂµÄ×Ó²½Öè
 
-    // ç³»ç»Ÿ
+    // ÏµÍ³
     public string? SystemEvent { get; set; }          // startup / shutdown / config_change
 
-    // æ‰©å±•
+    // À©Õ¹
     public Dictionary<string, object>? Extra { get; set; }
 }
 

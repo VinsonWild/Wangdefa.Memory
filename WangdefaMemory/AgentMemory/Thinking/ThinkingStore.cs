@@ -1,4 +1,9 @@
-ï»¿using System.Text.Json;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using System.Text.Json;
 using Wangdefa.AgentMemory.Interfaces;
 using Wangdefa.AgentMemory.Models;
 using Wangdefa.AgentMemory.Thinking.Events;
@@ -6,8 +11,8 @@ using Wangdefa.AgentMemory.Thinking.Events;
 namespace Wangdefa.AgentMemory.Thinking;
 
 /// <summary>
-/// æ€è€ƒå±‚å­˜å‚¨ - åˆ†æµç´¢å¼•è¯»å†™ï¼ˆæŒ‰è¯é¢˜åˆ†ç›®å½•ï¼‰
-/// ä¸å†å­˜å¯¹è¯åŸæ–‡ï¼Œåªå­˜"å»å“ªæ‰¾"çš„ç´¢å¼•
+/// Ë¼¿¼²ã´æ´¢ - ·ÖÁ÷Ë÷Òı¶ÁĞ´£¨°´»°Ìâ·ÖÄ¿Â¼£©
+/// ²»ÔÙ´æ¶Ô»°Ô­ÎÄ£¬Ö»´æ"È¥ÄÄÕÒ"µÄË÷Òı
 /// </summary>
 public class ThinkingStore : IThinkingStore
 {
@@ -21,7 +26,7 @@ public class ThinkingStore : IThinkingStore
     }
 
     /// <summary>
-    /// è·å–è¯é¢˜å­˜å‚¨è·¯å¾„
+    /// »ñÈ¡»°Ìâ´æ´¢Â·¾¶
     /// </summary>
     public string GetTopicPath(string topicId)
     {
@@ -32,16 +37,16 @@ public class ThinkingStore : IThinkingStore
     }
 
     /// <summary>
-    /// ã€å…¼å®¹ã€‘è·å–å¯¹è¯å­˜å‚¨è·¯å¾„ï¼ˆè°ƒç”¨ GetTopicPathï¼‰
+    /// ¡¾¼æÈİ¡¿»ñÈ¡¶Ô»°´æ´¢Â·¾¶£¨µ÷ÓÃ GetTopicPath£©
     /// </summary>
     public string GetChatPath(string topicId) => GetTopicPath(topicId);
 
     /// <summary>
-    /// ä¿å­˜åˆ†æµç´¢å¼•ï¼ˆæ›¿ä»£åŸæ¥çš„ Saveï¼‰
+    /// ±£´æ·ÖÁ÷Ë÷Òı£¨Ìæ´úÔ­À´µÄ Save£©
     /// </summary>
     public async Task<string> SaveIndex(DiversionIndexModel index, string topicId = "default")
     {
-        var recordId = $"è®°å½•_{DateTime.Now:yyyyMMdd_HHmmss}";
+        var recordId = $"¼ÇÂ¼_{DateTime.Now:yyyyMMdd_HHmmss}";
         var chatPath = GetTopicPath(topicId);
         var path = Path.Combine(chatPath, $"{recordId}.json");
         var json = JsonSerializer.Serialize(index, new JsonSerializerOptions { WriteIndented = true });
@@ -50,11 +55,11 @@ public class ThinkingStore : IThinkingStore
     }
 
     /// <summary>
-    /// åŠ è½½åˆ†æµç´¢å¼•ï¼ˆæ›¿ä»£åŸæ¥çš„ Loadï¼‰
+    /// ¼ÓÔØ·ÖÁ÷Ë÷Òı£¨Ìæ´úÔ­À´µÄ Load£©
     /// </summary>
     public async Task<DiversionIndexModel?> LoadIndex(string recordId, string? topicId = null)
     {
-        // 1. å¦‚æœæœ‰ topicIdï¼Œå…ˆæŸ¥æ–°è·¯å¾„
+        // 1. Èç¹ûÓĞ topicId£¬ÏÈ²éĞÂÂ·¾¶
         if (!string.IsNullOrEmpty(topicId))
         {
             var chatPath = GetTopicPath(topicId);
@@ -66,7 +71,7 @@ public class ThinkingStore : IThinkingStore
             }
         }
 
-        // 2. å›é€€åˆ°æ—§è·¯å¾„ï¼ˆå…¼å®¹å†å²æ•°æ®ï¼‰
+        // 2. »ØÍËµ½¾ÉÂ·¾¶£¨¼æÈİÀúÊ·Êı¾İ£©
         var oldPath = Path.Combine(_basePath, "thinking", "records", $"{recordId}.json");
         if (File.Exists(oldPath))
         {
@@ -92,7 +97,7 @@ public class ThinkingStore : IThinkingStore
             }
             catch
             {
-                // è½¬æ¢å¤±è´¥ï¼Œè¿”å›ç©º
+                // ×ª»»Ê§°Ü£¬·µ»Ø¿Õ
             }
         }
 
@@ -100,14 +105,14 @@ public class ThinkingStore : IThinkingStore
     }
 
     /// <summary>
-    /// è·å–æœ€æ–°ä¸€æ¡è®°å½•ID
+    /// »ñÈ¡×îĞÂÒ»Ìõ¼ÇÂ¼ID
     /// </summary>
     public async Task<string?> GetLatestRecordId(string topicId)
     {
         var chatPath = GetTopicPath(topicId);
         if (!Directory.Exists(chatPath)) return null;
 
-        var files = Directory.GetFiles(chatPath, "è®°å½•_*.json");
+        var files = Directory.GetFiles(chatPath, "¼ÇÂ¼_*.json");
         if (files.Length == 0) return null;
 
         var latest = files.OrderBy(f => f).LastOrDefault();
@@ -117,7 +122,7 @@ public class ThinkingStore : IThinkingStore
     }
 
     /// <summary>
-    /// æ›´æ–°å·²æœ‰ç´¢å¼•
+    /// ¸üĞÂÒÑÓĞË÷Òı
     /// </summary>
     public async Task UpdateIndex(string recordId, string topicId, DiversionIndexModel index)
     {
@@ -128,7 +133,7 @@ public class ThinkingStore : IThinkingStore
     }
 
     /// <summary>
-    /// æ›´æ–°å·²æœ‰è®°å½•ï¼ˆå…¼å®¹æ—§è°ƒç”¨ï¼‰
+    /// ¸üĞÂÒÑÓĞ¼ÇÂ¼£¨¼æÈİ¾Éµ÷ÓÃ£©
     /// </summary>
     public async Task Update(string recordId, string topicId, object record)
     {
@@ -145,7 +150,7 @@ public class ThinkingStore : IThinkingStore
     }
 
     /// <summary>
-    /// ã€å…¼å®¹ä¿ç•™ã€‘åŠ è½½ä¸ºå¼ºç±»å‹ ChatRecordï¼ˆä»…ç”¨äºåé¦ˆåˆ¤æ–­ï¼Œè¯»å–æ—§æ•°æ®ï¼‰
+    /// ¡¾¼æÈİ±£Áô¡¿¼ÓÔØÎªÇ¿ÀàĞÍ ChatRecord£¨½öÓÃÓÚ·´À¡ÅĞ¶Ï£¬¶ÁÈ¡¾ÉÊı¾İ£©
     /// </summary>
     public async Task<ChatRecord?> LoadChatRecord(string recordId, string topicId)
     {
@@ -157,7 +162,7 @@ public class ThinkingStore : IThinkingStore
     }
 
     /// <summary>
-    /// ä»äº‹ä»¶å­˜å‚¨åŠ è½½äº‹ä»¶
+    /// ´ÓÊÂ¼ş´æ´¢¼ÓÔØÊÂ¼ş
     /// </summary>
     public async Task<EventModel?> LoadEvent(string eventId)
     {

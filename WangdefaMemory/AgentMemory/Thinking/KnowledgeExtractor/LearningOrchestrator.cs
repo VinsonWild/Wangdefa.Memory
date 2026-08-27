@@ -1,4 +1,9 @@
-ï»¿using Wangdefa.AgentMemory.Interfaces;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using Wangdefa.AgentMemory.Interfaces;
 using Wangdefa.AgentMemory.Models;
 using Wangdefa.AgentMemory.Thinking.Events;
 using Wangdefa.Contracts;
@@ -6,8 +11,8 @@ using Wangdefa.Contracts;
 namespace Wangdefa.AgentMemory.Thinking.KnowledgeExtractor;
 
 /// <summary>
-/// å­¦ä¹ æœºåˆ¶å¯åŠ¨è§„åˆ™ â€” ç»Ÿä¸€å…¥å£
-/// åˆ¤æ–­ä»€ä¹ˆæ—¶å€™è§¦å‘å­¦ä¹ ã€è°ƒç”¨å“ªä¸ªæå–å™¨
+/// Ñ§Ï°»úÖÆÆô¶¯¹æÔò ¡ª Í³Ò»Èë¿Ú
+/// ÅĞ¶ÏÊ²Ã´Ê±ºò´¥·¢Ñ§Ï°¡¢µ÷ÓÃÄÄ¸öÌáÈ¡Æ÷
 /// </summary>
 public class LearningOrchestrator : ILearningOrchestrator
 {
@@ -28,15 +33,15 @@ public class LearningOrchestrator : ILearningOrchestrator
     }
 
     /// <summary>
-    /// å¤„ç†äº‹ä»¶ï¼šåˆ¤æ–­æ˜¯å¦å€¼å¾—å­¦ä¹  â†’ è°ƒç”¨å¯¹åº”æå–å™¨ â†’ å›å†™äº‹ä»¶
+    /// ´¦ÀíÊÂ¼ş£ºÅĞ¶ÏÊÇ·ñÖµµÃÑ§Ï° ¡ú µ÷ÓÃ¶ÔÓ¦ÌáÈ¡Æ÷ ¡ú »ØĞ´ÊÂ¼ş
     /// </summary>
     public async Task ProcessAsync(EventModel evt)
     {
-        // 1. åˆ¤æ–­æ˜¯å¦å€¼å¾—å­¦ä¹ 
+        // 1. ÅĞ¶ÏÊÇ·ñÖµµÃÑ§Ï°
         if (!ShouldLearn(evt))
             return;
 
-        // 2. è°ƒç”¨å¯¹åº”çš„æå–å™¨
+        // 2. µ÷ÓÃ¶ÔÓ¦µÄÌáÈ¡Æ÷
         DialogueAnalysis? insight = evt.EventType switch
         {
             "chat" => await _dialogueExtractor.ExtractAsync(evt),
@@ -49,18 +54,18 @@ public class LearningOrchestrator : ILearningOrchestrator
         if (insight == null)
             return;
 
-        // 3. å›å†™äº‹ä»¶
+        // 3. »ØĞ´ÊÂ¼ş
         await _eventStore.UpdateInsightAsync(evt.EventId, insight);
     }
 
     private bool ShouldLearn(EventModel evt)
     {
-        // è§„åˆ™ï¼š
-        // - å¯¹è¯ï¼šæœ‰å†…å®¹å°±å­¦
-        // - æ–‡ä»¶ï¼šéä¸´æ—¶æ–‡ä»¶
-        // - è¡Œä¸ºï¼šå…³é”®è¡Œä¸ºï¼ˆæ‰“å¼€/ä¿å­˜/åˆ é™¤ï¼‰
-        // - ä»»åŠ¡ï¼šæ‰§è¡Œå®Œæˆçš„
-        // å¯æ‰©å±•ï¼šé˜ˆå€¼ã€é¢‘ç‡ã€ç”¨æˆ·åé¦ˆ
+        // ¹æÔò£º
+        // - ¶Ô»°£ºÓĞÄÚÈİ¾ÍÑ§
+        // - ÎÄ¼ş£º·ÇÁÙÊ±ÎÄ¼ş
+        // - ĞĞÎª£º¹Ø¼üĞĞÎª£¨´ò¿ª/±£´æ/É¾³ı£©
+        // - ÈÎÎñ£ºÖ´ĞĞÍê³ÉµÄ
+        // ¿ÉÀ©Õ¹£ºãĞÖµ¡¢ÆµÂÊ¡¢ÓÃ»§·´À¡
 
         return evt.Result.Status == "completed" || evt.Result.Status == "pending";
     }

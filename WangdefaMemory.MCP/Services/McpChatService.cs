@@ -1,4 +1,9 @@
-ï»¿using System.Text;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using System.Text;
 using System.Text.Json;
 using Wangdefa.Contracts;
 
@@ -41,7 +46,7 @@ public class McpChatService : IChatService
 
         if (!response.IsSuccessStatusCode)
         {
-            Console.WriteLine($"[McpChatService] è¯·æ±‚å¤±è´¥: {response.StatusCode}, {responseJson}");
+            Console.WriteLine($"[McpChatService] ÇëÇóÊ§°Ü: {response.StatusCode}, {responseJson}");
             return "";
         }
 
@@ -59,7 +64,7 @@ public class McpChatService : IChatService
 
     public void SetThink(bool enabled)
     {
-        // MCP åœºæ™¯æš‚æ—¶ä¸æ”¯æŒæ€è€ƒæ¨¡å¼åˆ‡æ¢
+        // MCP ³¡¾°ÔİÊ±²»Ö§³ÖË¼¿¼Ä£Ê½ÇĞ»»
     }
 
     public bool IsDeepSeekThinkingMode()

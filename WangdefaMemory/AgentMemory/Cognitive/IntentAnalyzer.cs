@@ -1,5 +1,10 @@
-ï»¿// ================================================================
-// IntentAnalyzer.cs â€” A çº¿ï¼šæ„å›¾åˆ†æï¼ˆå«ä¸‰å±‚å…œåº•ï¼‰
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+// ================================================================
+// IntentAnalyzer.cs ¡ª A Ïß£ºÒâÍ¼·ÖÎö£¨º¬Èı²ã¶µµ×£©
 // ================================================================
 
 using System.Text.Json;
@@ -10,7 +15,7 @@ using WangdefaMemory.AgentMemory;
 namespace Wangdefa.AgentMemory.Cognitive;
 
 /// <summary>
-/// A çº¿ï¼šæ„å›¾åˆ†ææ‰§è¡Œå™¨
+/// A Ïß£ºÒâÍ¼·ÖÎöÖ´ĞĞÆ÷
 /// </summary>
 public class IntentAnalyzer
 {
@@ -27,17 +32,17 @@ public class IntentAnalyzer
 
     public async Task<IntentAnalysisResult> AnalyzeAsync(string input, string sessionId)
     {
-        Console.WriteLine("[IntentAnalyzer] 1. è¿›å…¥ A çº¿");
+        Console.WriteLine("[IntentAnalyzer] 1. ½øÈë A Ïß");
 
-        // â˜… è·å–æœ€è¿‘ 10 å¼ è®¤çŸ¥å¡æ‘˜è¦å’Œæ ‡ç­¾
+        // ¡ï »ñÈ¡×î½ü 10 ÕÅÈÏÖª¿¨ÕªÒªºÍ±êÇ©
         var recentCardsSummary = GetRecentCognitiveCardsSummary(10);
 
-        // ===== ç¬¬ä¸€å±‚ï¼šå®Œæ•´æ„å›¾åˆ†æ =====
+        // ===== µÚÒ»²ã£ºÍêÕûÒâÍ¼·ÖÎö =====
         var prompt = _instruction
             .Replace("{userInput}", input)
             .Replace("{recentCognitiveCards}", recentCardsSummary);
 
-        Console.WriteLine($"[IntentAnalyzer] Prompt æœ«å°¾ 500 å­—ç¬¦: {prompt.Substring(Math.Max(0, prompt.Length - 500))}");
+        Console.WriteLine($"[IntentAnalyzer] Prompt Ä©Î² 500 ×Ö·û: {prompt.Substring(Math.Max(0, prompt.Length - 500))}");
 
         var reply = await _chatService.ChatAsync(prompt);
 
@@ -48,50 +53,50 @@ public class IntentAnalyzer
                 var result = HarnessResponseParser.ParseIntentOutput(reply);
                 if (result.StructuredTags != null && result.StructuredTags.Length > 0)
                 {
-                    Console.WriteLine($"[IntentAnalyzer] ç¬¬ä¸€å±‚æˆåŠŸï¼Œæå–åˆ° {result.StructuredTags.Length} ä¸ªæ ‡ç­¾");
+                    Console.WriteLine($"[IntentAnalyzer] µÚÒ»²ã³É¹¦£¬ÌáÈ¡µ½ {result.StructuredTags.Length} ¸ö±êÇ©");
                     return result;
                 }
-                Console.WriteLine("[IntentAnalyzer] ç¬¬ä¸€å±‚è¿”å›äº†ç©ºæ ‡ç­¾ï¼Œå°è¯•ç¬¬äºŒå±‚");
+                Console.WriteLine("[IntentAnalyzer] µÚÒ»²ã·µ»ØÁË¿Õ±êÇ©£¬³¢ÊÔµÚ¶ş²ã");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[IntentAnalyzer] ç¬¬ä¸€å±‚è§£æå¤±è´¥: {ex.Message}ï¼Œå°è¯•ç¬¬äºŒå±‚");
+                Console.WriteLine($"[IntentAnalyzer] µÚÒ»²ã½âÎöÊ§°Ü: {ex.Message}£¬³¢ÊÔµÚ¶ş²ã");
             }
         }
 
-        // ===== ç¬¬äºŒå±‚ï¼šç®€åŒ–åˆ†è¯ï¼ˆè°ƒç”¨ LLM åªæå–å…³é”®è¯ï¼‰=====
+        // ===== µÚ¶ş²ã£º¼ò»¯·Ö´Ê£¨µ÷ÓÃ LLM Ö»ÌáÈ¡¹Ø¼ü´Ê£©=====
         var fallbackTags = await ExtractKeywordsFallback(input);
         if (fallbackTags.Length > 0)
         {
-            Console.WriteLine($"[IntentAnalyzer] ç¬¬äºŒå±‚æˆåŠŸï¼Œæå–åˆ° {fallbackTags.Length} ä¸ªæ ‡ç­¾");
+            Console.WriteLine($"[IntentAnalyzer] µÚ¶ş²ã³É¹¦£¬ÌáÈ¡µ½ {fallbackTags.Length} ¸ö±êÇ©");
             var result = GetDefaultResult();
             result.StructuredTags = fallbackTags;
             result.ContextSummary = input.Length > 30 ? input.Substring(0, 30) : input;
-            result.Intent = "æŸ¥è¯¢";
+            result.Intent = "²éÑ¯";
             return result;
         }
 
-        // ===== ç¬¬ä¸‰å±‚ï¼šè§„åˆ™åˆ†è¯ï¼ˆçº¯æœ¬åœ°ï¼Œ100% ä¿åº•ï¼‰=====
-        Console.WriteLine("[IntentAnalyzer] ç¬¬äºŒå±‚å¤±è´¥ï¼Œä½¿ç”¨è§„åˆ™åˆ†è¯å…œåº•");
+        // ===== µÚÈı²ã£º¹æÔò·Ö´Ê£¨´¿±¾µØ£¬100% ±£µ×£©=====
+        Console.WriteLine("[IntentAnalyzer] µÚ¶ş²ãÊ§°Ü£¬Ê¹ÓÃ¹æÔò·Ö´Ê¶µµ×");
         var ruleTags = ExtractTagsByRules(input);
         var defaultResult = GetDefaultResult();
         defaultResult.StructuredTags = ruleTags;
         defaultResult.ContextSummary = input.Length > 30 ? input.Substring(0, 30) : input;
-        defaultResult.Intent = "æŸ¥è¯¢";
+        defaultResult.Intent = "²éÑ¯";
         return defaultResult;
     }
 
     /// <summary>
-    /// è·å–æœ€è¿‘ N å¼ å·²å®Œæˆè®¤çŸ¥å¡çš„æ‘˜è¦å’Œæ ‡ç­¾
+    /// »ñÈ¡×î½ü N ÕÅÒÑÍê³ÉÈÏÖª¿¨µÄÕªÒªºÍ±êÇ©
     /// </summary>
     private string GetRecentCognitiveCardsSummary(int count = 10)
     {
         if (string.IsNullOrEmpty(_cognitiveRecordsPath) || !Directory.Exists(_cognitiveRecordsPath))
         {
-            return "ï¼ˆæ— å†å²è®°å¿†ï¼‰";
+            return "£¨ÎŞÀúÊ·¼ÇÒä£©";
         }
 
-        var files = Directory.GetFiles(_cognitiveRecordsPath, "è®¤çŸ¥_*.json")
+        var files = Directory.GetFiles(_cognitiveRecordsPath, "ÈÏÖª_*.json")
             .Select(f => new FileInfo(f))
             .OrderByDescending(f => f.CreationTime)
             .Take(count)
@@ -99,7 +104,7 @@ public class IntentAnalyzer
 
         if (files.Count == 0)
         {
-            return "ï¼ˆæ— å†å²è®°å¿†ï¼‰";
+            return "£¨ÎŞÀúÊ·¼ÇÒä£©";
         }
 
         var summaries = new List<string>();
@@ -115,31 +120,31 @@ public class IntentAnalyzer
 
                 var tags = record.Insight?.ContentTags != null && record.Insight.ContentTags.Length > 0
                     ? string.Join(", ", record.Insight.ContentTags)
-                    : "æ— æ ‡ç­¾";
+                    : "ÎŞ±êÇ©";
                 var summary = !string.IsNullOrEmpty(record.Insight?.Summary)
                     ? record.Insight.Summary
-                    : "æ— æ‘˜è¦";
+                    : "ÎŞÕªÒª";
 
-                summaries.Add($"{index}. æ‘˜è¦ï¼š{summary} | æ ‡ç­¾ï¼š{tags}");
+                summaries.Add($"{index}. ÕªÒª£º{summary} | ±êÇ©£º{tags}");
                 index++;
 
                 if (index > count) break;
             }
             catch
             {
-                // è·³è¿‡æŸåæ–‡ä»¶
+                // Ìø¹ıËğ»µÎÄ¼ş
             }
         }
 
-        return summaries.Count > 0 ? string.Join("\n", summaries) : "ï¼ˆæ— å†å²è®°å¿†ï¼‰";
+        return summaries.Count > 0 ? string.Join("\n", summaries) : "£¨ÎŞÀúÊ·¼ÇÒä£©";
     }
 
     /// <summary>
-    /// ç¬¬äºŒå±‚ï¼šè°ƒç”¨ LLM åªæå–å…³é”®è¯
+    /// µÚ¶ş²ã£ºµ÷ÓÃ LLM Ö»ÌáÈ¡¹Ø¼ü´Ê
     /// </summary>
     private async Task<StructuredTag[]> ExtractKeywordsFallback(string input)
     {
-        var prompt = $"ä»ä»¥ä¸‹æ–‡æœ¬ä¸­æå– 3-5 ä¸ªå…³é”®è¯æˆ–çŸ­è¯­ï¼Œåªè¿”å› JSON æ•°ç»„ï¼Œä¸è¦å…¶ä»–å†…å®¹ï¼š\n{input}";
+        var prompt = $"´ÓÒÔÏÂÎÄ±¾ÖĞÌáÈ¡ 3-5 ¸ö¹Ø¼ü´Ê»ò¶ÌÓï£¬Ö»·µ»Ø JSON Êı×é£¬²»ÒªÆäËûÄÚÈİ£º\n{input}";
         var reply = await _chatService.ChatAsync(prompt);
         if (string.IsNullOrEmpty(reply)) return Array.Empty<StructuredTag>();
 
@@ -149,7 +154,7 @@ public class IntentAnalyzer
             return keywords.Select(k => new StructuredTag
             {
                 Tag = k,
-                Dimension = "å†…å®¹",
+                Dimension = "ÄÚÈİ",
                 Code = "",
                 Definitions = Array.Empty<string>(),
                 Action = "add",
@@ -163,11 +168,11 @@ public class IntentAnalyzer
     }
 
     /// <summary>
-    /// ç¬¬ä¸‰å±‚ï¼šè§„åˆ™åˆ†è¯ï¼ˆçº¯æœ¬åœ°å…œåº•ï¼‰
+    /// µÚÈı²ã£º¹æÔò·Ö´Ê£¨´¿±¾µØ¶µµ×£©
     /// </summary>
     private static StructuredTag[] ExtractTagsByRules(string input)
     {
-        var separators = new[] { ' ', 'ï¼Œ', 'ã€‚', 'ã€', 'ï¼', 'ï¼Ÿ', ',', '.', '!', '?', '\n', '\r', '\t', ';', 'ï¼š', 'ï¼›' };
+        var separators = new[] { ' ', '£¬', '¡£', '¡¢', '£¡', '£¿', ',', '.', '!', '?', '\n', '\r', '\t', ';', '£º', '£»' };
         var words = input.Split(separators, StringSplitOptions.RemoveEmptyEntries);
 
         var tags = new List<string>();
@@ -185,7 +190,7 @@ public class IntentAnalyzer
         return tags.Select(t => new StructuredTag
         {
             Tag = t,
-            Dimension = "å†…å®¹",
+            Dimension = "ÄÚÈİ",
             Code = "",
             Definitions = Array.Empty<string>(),
             Action = "add",
@@ -197,7 +202,7 @@ public class IntentAnalyzer
     {
         return new IntentAnalysisResult
         {
-            Intent = "é—²èŠ",
+            Intent = "ÏĞÁÄ",
             Route = "shallow",
             Perception = new PerceptionModel(),
             ContextSummary = "",

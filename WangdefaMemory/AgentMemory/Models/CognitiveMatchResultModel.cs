@@ -1,9 +1,14 @@
-ï»¿using System.Collections.Generic;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using System.Collections.Generic;
 
 namespace Wangdefa.AgentMemory.Models;
 
 /// <summary>
-/// è®¤çŸ¥åŒ¹é…ç»“æœ - è¿”å›ç»™ Agent
+/// ÈÏÖªÆ¥Åä½á¹û - ·µ»Ø¸ø Agent
 /// </summary>
 public class CognitiveMatchResultModel
 {
@@ -15,13 +20,13 @@ public class CognitiveMatchResultModel
     public PerceptionModel? Perception { get; set; }
     public InsightModel? Insight { get; set; }
 
-    // ===== æ—¶é—´æˆ³ï¼ˆç”¨äºæ—¶é—´è¡°å‡æ’åºï¼‰ =====
+    // ===== Ê±¼ä´Á£¨ÓÃÓÚÊ±¼äË¥¼õÅÅĞò£© =====
     public DateTime? CreatedAt { get; set; }
 
-    // ===== åå¥½ï¼ˆä» Insight æå–ï¼‰ =====
+    // ===== Æ«ºÃ£¨´Ó Insight ÌáÈ¡£© =====
     public List<PreferenceEntry>? Preferences { get; set; }
 
-    // ===== æŒ‡é’ˆå­—æ®µï¼ˆå¿…é¡»å­˜åœ¨ï¼‰ =====
+    // ===== Ö¸Õë×Ö¶Î£¨±ØĞë´æÔÚ£© =====
     public string? SummaryPointer { get; set; }
     public string? OverviewPointer { get; set; }
     public string? FullTextPointer { get; set; }
@@ -33,16 +38,16 @@ public class CognitiveMatchResultModel
         var parts = new List<string>();
 
         if (ContentTags.Length > 0)
-            parts.Add($"å†…å®¹æ ‡ç­¾: {string.Join(", ", ContentTags)}");
+            parts.Add($"ÄÚÈİ±êÇ©: {string.Join(", ", ContentTags)}");
 
         if (RelationTags.Any())
-            parts.Add($"å…³ç³»æ ‡ç­¾: {string.Join(", ", RelationTags.Select(r => $"{r.From}â†’{r.To}({r.Strength:F2})"))}");
+            parts.Add($"¹ØÏµ±êÇ©: {string.Join(", ", RelationTags.Select(r => $"{r.From}¡ú{r.To}({r.Strength:F2})"))}");
 
         if (!string.IsNullOrEmpty(Summary))
-            parts.Add($"æ‘˜è¦: {Summary}");
+            parts.Add($"ÕªÒª: {Summary}");
 
         if (Preferences != null && Preferences.Any())
-            parts.Add($"åå¥½: {string.Join(", ", Preferences.Select(p => $"{p.Key}={p.Value}({p.Confidence:F0%})"))}");
+            parts.Add($"Æ«ºÃ: {string.Join(", ", Preferences.Select(p => $"{p.Key}={p.Value}({p.Confidence:F0%})"))}");
 
         return string.Join("\n", parts);
     }

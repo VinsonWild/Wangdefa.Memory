@@ -1,35 +1,40 @@
-ï»¿namespace Wangdefa.AgentMemory.Models;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+namespace Wangdefa.AgentMemory.Models;
 
 /// <summary>
-/// ç”¨æˆ·åé¦ˆ - è¯„ä»·ä¸Šä¸€æ¡è®°å¿†æ˜¯å¦å‘½ä¸­
+/// ÓÃ»§·´À¡ - ÆÀ¼ÛÉÏÒ»Ìõ¼ÇÒäÊÇ·ñÃüÖĞ
 /// </summary>
 public class UserFeedback
 {
     public string Status { get; set; } = "pending";  // pending / confirmed / rejected / ignored
-    public string? JudgedBy { get; set; }            // ä¸‹ä¸€æ¡è®°å½•çš„ID
-    public DateTime? JudgedAt { get; set; }          // è¯„ä»·æ—¶é—´
-    public string? Reason { get; set; }              // è¯„ä»·åŸå› ï¼ˆå¯é€‰ï¼‰
+    public string? JudgedBy { get; set; }            // ÏÂÒ»Ìõ¼ÇÂ¼µÄID
+    public DateTime? JudgedAt { get; set; }          // ÆÀ¼ÛÊ±¼ä
+    public string? Reason { get; set; }              // ÆÀ¼ÛÔ­Òò£¨¿ÉÑ¡£©
 }
 
 /// <summary>
-/// èŠå¤©è®°å½•ï¼ˆæ€è€ƒå±‚-å¯¹è¯åŸæ–‡ï¼‰
+/// ÁÄÌì¼ÇÂ¼£¨Ë¼¿¼²ã-¶Ô»°Ô­ÎÄ£©
 /// </summary>
 public class ChatRecord
 {
-    public string Id { get; set; } = "";                     // è®°å½•_xxx
+    public string Id { get; set; } = "";                     // ¼ÇÂ¼_xxx
     public string TopicId { get; set; } = "";
     public string UserInput { get; set; } = "";
     public string AgentResponse { get; set; } = "";
     public string[] CognitiveTags { get; set; } = Array.Empty<string>();
     public string CognitiveSummary { get; set; } = "";
     public double Confidence { get; set; } = 0.0;
-    public string[] Candidates { get; set; } = Array.Empty<string>();  // æœ¬æ¬¡æ£€ç´¢åˆ°çš„å€™é€‰è®°å½•ID
+    public string[] Candidates { get; set; } = Array.Empty<string>();  // ±¾´Î¼ìË÷µ½µÄºòÑ¡¼ÇÂ¼ID
     public UserFeedback UserFeedback { get; set; } = new();
     public DateTime CreatedAt { get; set; }
 }
 
 /// <summary>
-/// å½’æ¡£æ–‡ä»¶ç»“æ„
+/// ¹éµµÎÄ¼ş½á¹¹
 /// </summary>
 public class ArchiveFile
 {

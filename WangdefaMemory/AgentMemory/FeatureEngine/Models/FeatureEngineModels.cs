@@ -1,7 +1,12 @@
-ï»¿namespace Wangdefa.AgentMemory.FeatureEngine.Models;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+namespace Wangdefa.AgentMemory.FeatureEngine.Models;
 
 /// <summary>
-/// æ ‡ç­¾æ± æ¡ç›®
+/// ±êÇ©³ØÌõÄ¿
 /// </summary>
 public class TagEntry
 {
@@ -10,9 +15,9 @@ public class TagEntry
     public string Code { get; set; } = "";
     public string TagType { get; set; } = "";      // content / relation / scene / task / constraint / intent / skill / special
     public string Definition { get; set; } = "";
-    public string Dimensions { get; set; } = "[]"; // JSONæ•°ç»„
-    public string RelatedCodes { get; set; } = "[]"; // JSONæ•°ç»„
-    public string Synonyms { get; set; } = "[]";   // JSONæ•°ç»„
+    public string Dimensions { get; set; } = "[]"; // JSONÊı×é
+    public string RelatedCodes { get; set; } = "[]"; // JSONÊı×é
+    public string Synonyms { get; set; } = "[]";   // JSONÊı×é
     public string Source { get; set; } = "auto";   // system / user / auto / ai
     public string Status { get; set; } = "active"; // active / deprecated / merged
     public string? MergedTo { get; set; }
@@ -21,7 +26,7 @@ public class TagEntry
 }
 
 /// <summary>
-/// å¯†ç ç°¿æ¡ç›®
+/// ÃÜÂë²¾ÌõÄ¿
 /// </summary>
 public class PasswordEntry
 {
@@ -33,7 +38,7 @@ public class PasswordEntry
 }
 
 /// <summary>
-/// ç‰¹å¾ç»Ÿè®¡æ¡ç›®
+/// ÌØÕ÷Í³¼ÆÌõÄ¿
 /// </summary>
 public class FeatureStat
 {
@@ -46,7 +51,7 @@ public class FeatureStat
 }
 
 /// <summary>
-/// ç‰¹å¾æŸ¥è¯¢ç»“æœ
+/// ÌØÕ÷²éÑ¯½á¹û
 /// </summary>
 public class FeatureMatchResult
 {
@@ -55,6 +60,6 @@ public class FeatureMatchResult
     public string Path { get; set; } = "";
     public List<string> Codes { get; set; } = new();
     public double Strength { get; set; }
-    public List<string> MatchCodes { get; set; } = new();  // å‘½ä¸­çš„code
-    public List<string> MatchTags { get; set; } = new();   // å‘½ä¸­çš„æ ‡ç­¾æ–‡æœ¬
+    public List<string> MatchCodes { get; set; } = new();  // ÃüÖĞµÄcode
+    public List<string> MatchTags { get; set; } = new();   // ÃüÖĞµÄ±êÇ©ÎÄ±¾
 }

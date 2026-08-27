@@ -1,11 +1,16 @@
-锘縰sing Wangdefa.AgentMemory.Knowledge;
+// Copyright 漏 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using Wangdefa.AgentMemory.Knowledge;
 using Wangdefa.AgentMemory.Models;
 using Wangdefa.AgentMemory.Thinking;
 
 namespace Wangdefa.AgentMemory.Interfaces;
 
 /// <summary>
-/// 鐭ヨ瘑瀛樺偍鎺ュ彛
+/// 知识存储接口
 /// </summary>
 public interface IKnowledgeStore
 {

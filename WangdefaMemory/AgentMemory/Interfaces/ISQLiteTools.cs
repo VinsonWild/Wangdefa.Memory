@@ -1,9 +1,14 @@
-ï»¿using Wangdefa.AgentMemory.Models;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using Wangdefa.AgentMemory.Models;
 
 namespace Wangdefa.AgentMemory.Interfaces;
 
 /// <summary>
-/// SQLite å¤‡ä»½å·¥å…·æ¥å£ â€” ç”±ä¸»é¡¹ç›®å®ç°
+/// SQLite ±¸·İ¹¤¾ß½Ó¿Ú ¡ª ÓÉÖ÷ÏîÄ¿ÊµÏÖ
 /// </summary>
 public interface ISQLiteTools
 {

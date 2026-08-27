@@ -1,7 +1,12 @@
-ï»¿namespace Wangdefa.AgentMemory.Models;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+namespace Wangdefa.AgentMemory.Models;
 
 /// <summary>
-/// è®¤çŸ¥è®°å½• - ä¸€æ¡å®Œæ•´çš„"è§è¯†"
+/// ÈÏÖª¼ÇÂ¼ - Ò»ÌõÍêÕûµÄ"¼ûÊ¶"
 /// </summary>
 public class CognitiveRecordModel
 {
@@ -12,32 +17,32 @@ public class CognitiveRecordModel
     public DateTime CreatedAt { get; set; }
 
     /// <summary>
-    /// æƒé‡ï¼ˆ0.3-1.0ï¼‰ï¼Œç”¨äºæ’åºï¼Œéšæ—¶é—´è¡°å‡
+    /// È¨ÖØ£¨0.3-1.0£©£¬ÓÃÓÚÅÅĞò£¬ËæÊ±¼äË¥¼õ
     /// </summary>
     public double Weight { get; set; } = 1.0;
 
     /// <summary>
-    /// æœ€åè¢«è®¿é—®çš„æ—¶é—´ï¼ˆç”¨äºè¡°å‡è®¡ç®—ï¼‰
+    /// ×îºó±»·ÃÎÊµÄÊ±¼ä£¨ÓÃÓÚË¥¼õ¼ÆËã£©
     /// </summary>
     public DateTime LastAccessAt { get; set; }
 
     /// <summary>
-    /// æŒ‡å‘çŸ¥è¯†å±‚ä½ç½®ï¼ˆæ¦‚è§ˆ/æ‘˜è¦ï¼‰
+    /// Ö¸ÏòÖªÊ¶²ãÎ»ÖÃ£¨¸ÅÀÀ/ÕªÒª£©
     /// </summary>
     public string SourcePath { get; set; } = "";
 
     /// <summary>
-    /// çŠ¶æ€ï¼špending / completed / interrupted / failed
+    /// ×´Ì¬£ºpending / completed / interrupted / failed
     /// </summary>
     public string Status { get; set; } = "pending";
 
     /// <summary>
-    /// æ‰€å±ä¼šè¯ID
+    /// ËùÊô»á»°ID
     /// </summary>
     public string TopicId { get; set; } = "";
 
     /// <summary>
-    /// å…³è”çš„äº‹ä»¶IDï¼ˆç”¨äºè¡¥å…¨æ—¶å¿«é€Ÿå®šä½äº‹ä»¶ï¼‰
+    /// ¹ØÁªµÄÊÂ¼şID£¨ÓÃÓÚ²¹È«Ê±¿ìËÙ¶¨Î»ÊÂ¼ş£©
     /// </summary>
     public string EventId { get; set; } = "";
 }

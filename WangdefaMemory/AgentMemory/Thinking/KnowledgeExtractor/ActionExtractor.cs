@@ -1,11 +1,16 @@
-ï»¿using System.Text.Json;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using System.Text.Json;
 using Wangdefa.AgentMemory.Models;
 using Wangdefa.Contracts;
 
 namespace Wangdefa.AgentMemory.Thinking.KnowledgeExtractor;
 
 /// <summary>
-/// è¡Œä¸ºæç‚¼å™¨ - ä»ç”¨æˆ·è¡Œä¸ºä¸­æç‚¼æ¨¡å¼/ä¹ æƒ¯
+/// ĞĞÎªÌáÁ¶Æ÷ - ´ÓÓÃ»§ĞĞÎªÖĞÌáÁ¶Ä£Ê½/Ï°¹ß
 /// </summary>
 public class ActionExtractor
 {
@@ -13,11 +18,11 @@ public class ActionExtractor
 
     public ActionExtractor(IChatService chatService)
     {
-        _chatService = chatService ?? throw new ArgumentNullException(nameof(chatService), "ActionExtractor å¿…é¡»é…ç½® ChatService");
+        _chatService = chatService ?? throw new ArgumentNullException(nameof(chatService), "ActionExtractor ±ØĞëÅäÖÃ ChatService");
     }
 
     /// <summary>
-    /// ä»å•ä¸ªè¡Œä¸ºäº‹ä»¶ä¸­æç‚¼æ´å¯Ÿ
+    /// ´Óµ¥¸öĞĞÎªÊÂ¼şÖĞÌáÁ¶¶´²ì
     /// </summary>
     public async Task<DialogueAnalysis?> ExtractAsync(EventModel evt)
     {
@@ -30,36 +35,36 @@ public class ActionExtractor
         try
         {
             var extraInfo = extra != null
-                ? $"é¢å¤–ä¿¡æ¯ï¼š{JsonSerializer.Serialize(extra)}"
+                ? $"¶îÍâĞÅÏ¢£º{JsonSerializer.Serialize(extra)}"
                 : "";
 
             var prompt = $@"
-åˆ†æä»¥ä¸‹ç”¨æˆ·è¡Œä¸ºï¼Œæç‚¼è¡Œä¸ºæ¨¡å¼æˆ–ä¹ æƒ¯ã€‚å¦‚æœæ˜¯å¸¸è§æ“ä½œï¼Œè¿”å› nullã€‚
+·ÖÎöÒÔÏÂÓÃ»§ĞĞÎª£¬ÌáÁ¶ĞĞÎªÄ£Ê½»òÏ°¹ß¡£Èç¹ûÊÇ³£¼û²Ù×÷£¬·µ»Ø null¡£
 
-è¡Œä¸ºç±»å‹ï¼š{actionType}
-æ—¶é—´ï¼š{evt.Timestamp:yyyy-MM-dd HH:mm}
+ĞĞÎªÀàĞÍ£º{actionType}
+Ê±¼ä£º{evt.Timestamp:yyyy-MM-dd HH:mm}
 {extraInfo}
 
-è¿”å› JSON æ ¼å¼ï¼š
+·µ»Ø JSON ¸ñÊ½£º
 {{
-    ""type"": ""è¡Œä¸ºæ¨¡å¼/ä¹ æƒ¯"",
-    ""summary"": ""ä¸€å¥è¯æ€»ç»“è¿™ä¸ªè¡Œä¸ºæ¨¡å¼"",
+    ""type"": ""ĞĞÎªÄ£Ê½/Ï°¹ß"",
+    ""summary"": ""Ò»¾ä»°×Ü½áÕâ¸öĞĞÎªÄ£Ê½"",
     ""details"": {{
-        ""trigger"": ""è§¦å‘æ¡ä»¶"",
-        ""action"": ""å…·ä½“è¡Œä¸º"",
-        ""result"": ""è¡Œä¸ºç»“æœæˆ–å½±å“""
+        ""trigger"": ""´¥·¢Ìõ¼ş"",
+        ""action"": ""¾ßÌåĞĞÎª"",
+        ""result"": ""ĞĞÎª½á¹û»òÓ°Ïì""
     }},
-    ""tags"": [""æ ‡ç­¾1"", ""æ ‡ç­¾2""],
+    ""tags"": [""±êÇ©1"", ""±êÇ©2""],
     ""relation_tags"": [
-        {{ ""from"": ""ç”¨æˆ·"", ""to"": ""ç›®æ ‡"", ""strength"": 0.9 }}
+        {{ ""from"": ""ÓÃ»§"", ""to"": ""Ä¿±ê"", ""strength"": 0.9 }}
     ],
     ""confidence"": 0.8
 }}
 
-è¦æ±‚ï¼š
-- å¦‚æœæ˜¯å•ä¸€ã€å¶å‘çš„è¡Œä¸ºï¼ˆå¦‚æ‰“å¼€ä¸€æ¬¡æ–‡ä»¶ï¼‰ï¼Œè¿”å› null
-- åªæœ‰é‡å¤æ€§ã€æ¨¡å¼åŒ–çš„è¡Œä¸ºæ‰æç‚¼
-- åªè¿”å› JSONï¼Œä¸è¦å…¶ä»–å†…å®¹";
+ÒªÇó£º
+- Èç¹ûÊÇµ¥Ò»¡¢Å¼·¢µÄĞĞÎª£¨Èç´ò¿ªÒ»´ÎÎÄ¼ş£©£¬·µ»Ø null
+- Ö»ÓĞÖØ¸´ĞÔ¡¢Ä£Ê½»¯µÄĞĞÎª²ÅÌáÁ¶
+- Ö»·µ»Ø JSON£¬²»ÒªÆäËûÄÚÈİ";
 
             var result = await _chatService.ChatAsync(prompt);
             if (string.IsNullOrEmpty(result)) return null;
@@ -73,12 +78,12 @@ public class ActionExtractor
 
             return new DialogueAnalysis
             {
-                Id = $"åˆ†æ_{DateTime.Now:yyyyMMdd_HHmmss}",
+                Id = $"·ÖÎö_{DateTime.Now:yyyyMMdd_HHmmss}",
                 TopicId = evt.TopicId,
-                Type = "è¡Œä¸ºæ¨¡å¼",
-                Summary = extraction.Summary ?? $"ç”¨æˆ·å¸¸åšï¼š{actionType}",
+                Type = "ĞĞÎªÄ£Ê½",
+                Summary = extraction.Summary ?? $"ÓÃ»§³£×ö£º{actionType}",
                 Details = extraction.Details ?? new DialogueAnalysisDetails(),
-                Tags = extraction.Tags ?? new[] { "è¡Œä¸º", actionType },
+                Tags = extraction.Tags ?? new[] { "ĞĞÎª", actionType },
                 RelationTags = extraction.RelationTags ?? new List<RelationTag>(),
                 Confidence = extraction.Confidence,
                 SourceEventIds = new List<string> { evt.EventId },
@@ -89,7 +94,7 @@ public class ActionExtractor
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"âš ï¸ è¡Œä¸ºæç‚¼å¤±è´¥: {ex.Message}");
+            Console.WriteLine($"?? ĞĞÎªÌáÁ¶Ê§°Ü: {ex.Message}");
             return null;
         }
     }

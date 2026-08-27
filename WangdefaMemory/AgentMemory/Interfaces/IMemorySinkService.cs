@@ -1,10 +1,15 @@
-ï»¿using Wangdefa.AgentMemory.Cognitive;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using Wangdefa.AgentMemory.Cognitive;
 using Wangdefa.AgentMemory.Models;
 
 namespace Wangdefa.AgentMemory.Interfaces;
 
 /// <summary>
-/// è®°å¿†å†™å…¥æœåŠ¡æ¥å£
+/// ¼ÇÒäĞ´Èë·şÎñ½Ó¿Ú
 /// </summary>
 public interface IMemorySinkService
 {
@@ -23,9 +28,9 @@ public interface IMemorySinkService
         List<PreferenceEntry>? preferences = null);
 
     /// <summary>
-    /// å‰ç½®å†™å…¥å¡ç‰‡æ¡†æ¶
+    /// Ç°ÖÃĞ´Èë¿¨Æ¬¿ò¼Ü
     /// </summary>
-    /// <returns>è¿”å›å¡ç‰‡ID</returns>
+    /// <returns>·µ»Ø¿¨Æ¬ID</returns>
     Task<string> WriteFrameAsync(
         string topicId,
         string userInput,
@@ -36,13 +41,13 @@ public interface IMemorySinkService
         string? sourceType = null);
 
     /// <summary>
-    /// è¡¥å…¨å¡ç‰‡
+    /// ²¹È«¿¨Æ¬
     /// </summary>
-    /// <param name="cardId">å¡ç‰‡ID</param>
-    /// <param name="userInput">ç”¨æˆ·è¾“å…¥ï¼ˆç”¨äº Cçº¿ æ‘˜è¦ç”Ÿæˆï¼‰</param>
-    /// <param name="agentResponse">Agentå›å¤</param>
-    /// <param name="status">çŠ¶æ€</param>
-    /// <param name="errorMessage">é”™è¯¯ä¿¡æ¯</param>
+    /// <param name="cardId">¿¨Æ¬ID</param>
+    /// <param name="userInput">ÓÃ»§ÊäÈë£¨ÓÃÓÚ CÏß ÕªÒªÉú³É£©</param>
+    /// <param name="agentResponse">Agent»Ø¸´</param>
+    /// <param name="status">×´Ì¬</param>
+    /// <param name="errorMessage">´íÎóĞÅÏ¢</param>
     Task CompleteAsync(
         string cardId,
         string userInput,

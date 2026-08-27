@@ -1,9 +1,14 @@
-ï»¿using Wangdefa.AgentMemory.FeatureEngine.Models;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using Wangdefa.AgentMemory.FeatureEngine.Models;
 
 namespace Wangdefa.AgentMemory.FeatureEngine;
 
 /// <summary>
-/// ç‰¹å¾æ¨æ¼”ç»Ÿä¸€å…¥å£
+/// ÌØÕ÷ÍÆÑİÍ³Ò»Èë¿Ú
 /// </summary>
 public class FeatureEngine
 {
@@ -26,7 +31,7 @@ public class FeatureEngine
     public FeatureStats Stats => _featureStats;
 
     /// <summary>
-    /// ä»ç”¨æˆ·è¾“å…¥ä¸­æå–ç‰¹å¾æ ‡ç­¾
+    /// ´ÓÓÃ»§ÊäÈëÖĞÌáÈ¡ÌØÕ÷±êÇ©
     /// </summary>
     public List<string> ExtractCodes(string input)
     {
@@ -51,8 +56,8 @@ public class FeatureEngine
     }
 
     /// <summary>
-    /// æ£€ç´¢ï¼šcode â†’ å¡ç‰‡åˆ—è¡¨ â†’ æ‰©å±• â†’ å¾ªç¯ â†’ ç²¾é€‰
-    /// æ”¯æŒåˆ†é¡µå¤„ç†ï¼Œé¿å…å†…å­˜æº¢å‡º
+    /// ¼ìË÷£ºcode ¡ú ¿¨Æ¬ÁĞ±í ¡ú À©Õ¹ ¡ú Ñ­»· ¡ú ¾«Ñ¡
+    /// Ö§³Ö·ÖÒ³´¦Àí£¬±ÜÃâÄÚ´æÒç³ö
     /// </summary>
     public List<FeatureMatchResult> Search(
         List<string> initialCodes,
@@ -74,7 +79,7 @@ public class FeatureEngine
         {
             var candidateCards = new HashSet<string>();
 
-            // åˆ†é¡µå¤„ç† currentCodesï¼Œé¿å…ä¸€æ¬¡æ€§åŠ è½½è¿‡å¤š
+            // ·ÖÒ³´¦Àí currentCodes£¬±ÜÃâÒ»´ÎĞÔ¼ÓÔØ¹ı¶à
             var codeList = currentCodes.ToList();
             for (int i = 0; i < codeList.Count; i += _pageSize)
             {
@@ -90,7 +95,7 @@ public class FeatureEngine
                         cardMatchCount[card]++;
                     }
 
-                    // æå‰ç»ˆæ­¢ï¼šå·²è¾¾ maxCards
+                    // ÌáÇ°ÖÕÖ¹£ºÒÑ´ï maxCards
                     if (finalCards.Count >= maxCards)
                         break;
                 }
@@ -106,7 +111,7 @@ public class FeatureEngine
             if (finalCards.Count >= maxCards)
                 break;
 
-            // æ‰©å±•ï¼šä»æ–°å¡ç‰‡è·å–å…³è” codeï¼ˆåˆ†é¡µï¼‰
+            // À©Õ¹£º´ÓĞÂ¿¨Æ¬»ñÈ¡¹ØÁª code£¨·ÖÒ³£©
             var newCodes = new HashSet<string>();
             var cardList = candidateCards.Take(_pageSize).ToList();
             foreach (var card in cardList)
@@ -127,7 +132,7 @@ public class FeatureEngine
             depth++;
         }
 
-        // ç»“æœå¤„ç†ï¼ˆåˆ†é¡µï¼‰
+        // ½á¹û´¦Àí£¨·ÖÒ³£©
         var results = new List<FeatureMatchResult>();
         var cardIds = finalCards.Take(maxCards).ToList();
 
@@ -160,12 +165,12 @@ public class FeatureEngine
     }
 
     /// <summary>
-    /// ä¸ºå¡ç‰‡æ‰“æ ‡ç­¾ï¼ˆå†™å…¥å¯†ç ç°¿ï¼‰ï¼Œç»Ÿä¸€å¤„ç†æ ‡ç­¾æ±  + å¯†ç ç°¿ + ç‰¹å¾ç»Ÿè®¡
+    /// Îª¿¨Æ¬´ò±êÇ©£¨Ğ´ÈëÃÜÂë²¾£©£¬Í³Ò»´¦Àí±êÇ©³Ø + ÃÜÂë²¾ + ÌØÕ÷Í³¼Æ
     /// </summary>
-    /// <param name="cardId">å¡ç‰‡ID</param>
-    /// <param name="tags">æ ‡ç­¾åˆ—è¡¨</param>
-    /// <param name="cardType">å¡ç‰‡ç±»å‹</param>
-    /// <param name="definitions">ç¼ºå¤±æ ‡ç­¾çš„è¯­ä¹‰å®šä¹‰ï¼ˆkey: tag, value: definitionï¼‰</param>
+    /// <param name="cardId">¿¨Æ¬ID</param>
+    /// <param name="tags">±êÇ©ÁĞ±í</param>
+    /// <param name="cardType">¿¨Æ¬ÀàĞÍ</param>
+    /// <param name="definitions">È±Ê§±êÇ©µÄÓïÒå¶¨Òå£¨key: tag, value: definition£©</param>
     public void TagCard(string cardId, List<string> tags, string cardType = "cognitive", Dictionary<string, string>? definitions = null)
     {
         var codes = new List<string>();
@@ -175,36 +180,36 @@ public class FeatureEngine
             var code = _tagDictionary.GetCode(tag);
             if (code == null)
             {
-                // æ ‡ç­¾ä¸å­˜åœ¨ï¼šä» definitions å–å®šä¹‰ï¼Œæ²¡æœ‰åˆ™ç•™ç©º
+                // ±êÇ©²»´æÔÚ£º´Ó definitions È¡¶¨Òå£¬Ã»ÓĞÔòÁô¿Õ
                 var def = definitions?.GetValueOrDefault(tag) ?? "";
                 var entry = _tagDictionary.Add(tag, "content", def, "auto");
                 code = entry.Code;
-                Console.WriteLine($"ğŸ“ æ–°æ ‡ç­¾å·²åˆ›å»º: {tag} â†’ {code} (å®šä¹‰: {def})");
+                Console.WriteLine($"?? ĞÂ±êÇ©ÒÑ´´½¨: {tag} ¡ú {code} (¶¨Òå: {def})");
             }
             else if (definitions != null && definitions.TryGetValue(tag, out var def) && !string.IsNullOrEmpty(def))
             {
-                // æ ‡ç­¾å­˜åœ¨ä½†å®šä¹‰ä¸ºç©ºï¼šæ›´æ–°å®šä¹‰
+                // ±êÇ©´æÔÚµ«¶¨ÒåÎª¿Õ£º¸üĞÂ¶¨Òå
                 var entry = _tagDictionary.GetEntryByCode(code);
                 if (entry != null && string.IsNullOrEmpty(entry.Definition))
                 {
                     _tagDictionary.UpdateDefinition(code, def);
-                    Console.WriteLine($"ğŸ“ æ ‡ç­¾å®šä¹‰å·²æ›´æ–°: {tag} â†’ {def}");
+                    Console.WriteLine($"?? ±êÇ©¶¨ÒåÒÑ¸üĞÂ: {tag} ¡ú {def}");
                 }
             }
             codes.Add(code);
         }
 
-        // å†™å…¥å¯†ç ç°¿ï¼ˆcode â†’ å¡ç‰‡IDï¼‰
+        // Ğ´ÈëÃÜÂë²¾£¨code ¡ú ¿¨Æ¬ID£©
         _passwordBook.AddCodesToCard(cardId, codes);
 
-        // å†™å…¥ç‰¹å¾ç»Ÿè®¡ï¼ˆå‘½ä¸­æ¬¡æ•°ï¼‰
+        // Ğ´ÈëÌØÕ÷Í³¼Æ£¨ÃüÖĞ´ÎÊı£©
         _featureStats.RecordHit(codes);
 
-        Console.WriteLine($"âœ… TagCard å®Œæˆ: {cardId}, {codes.Count} ä¸ªæ ‡ç­¾");
+        Console.WriteLine($"? TagCard Íê³É: {cardId}, {codes.Count} ¸ö±êÇ©");
     }
 
     /// <summary>
-    /// è·å–å¡ç‰‡çš„å…¨éƒ¨code
+    /// »ñÈ¡¿¨Æ¬µÄÈ«²¿code
     /// </summary>
     public List<string> GetCardCodes(string cardId)
     {
@@ -213,26 +218,26 @@ public class FeatureEngine
 
     private string GetCardPath(string cardId)
     {
-        if (cardId.StartsWith("è®¤çŸ¥_"))
+        if (cardId.StartsWith("ÈÏÖª_"))
             return $"cognitive/records/{cardId}.json";
-        if (cardId.StartsWith("æ–‡ä»¶_") || cardId.StartsWith("æ¦‚è¦_"))
+        if (cardId.StartsWith("ÎÄ¼ş_") || cardId.StartsWith("¸ÅÒª_"))
             return $"experience/knowledge/{cardId}.json";
-        if (cardId.StartsWith("äº‹ä»¶_") || cardId.StartsWith("é˜…å†_"))
+        if (cardId.StartsWith("ÊÂ¼ş_") || cardId.StartsWith("ÔÄÀú_"))
             return $"experience/events/{DateTime.Now:yyyy-MM-dd}/{cardId}.json";
         return cardId;
     }
 
     private string GetCardType(string cardId)
     {
-        if (cardId.StartsWith("è®¤çŸ¥_")) return "cognitive";
-        if (cardId.StartsWith("æ–‡ä»¶_") || cardId.StartsWith("æ¦‚è¦_")) return "file";
-        if (cardId.StartsWith("äº‹ä»¶_") || cardId.StartsWith("é˜…å†_")) return "event";
+        if (cardId.StartsWith("ÈÏÖª_")) return "cognitive";
+        if (cardId.StartsWith("ÎÄ¼ş_") || cardId.StartsWith("¸ÅÒª_")) return "file";
+        if (cardId.StartsWith("ÊÂ¼ş_") || cardId.StartsWith("ÔÄÀú_")) return "event";
         return "unknown";
     }
 
     private List<string> SplitWords(string input)
     {
-        var separators = new[] { ' ', 'ï¼Œ', 'ã€‚', 'ã€', 'ï¼', 'ï¼Ÿ', ',', '.', '!', '?', '\n', '\r', '\t' };
+        var separators = new[] { ' ', '£¬', '¡£', '¡¢', '£¡', '£¿', ',', '.', '!', '?', '\n', '\r', '\t' };
         var words = input.Split(separators, StringSplitOptions.RemoveEmptyEntries);
         return words.Where(w => w.Length >= 2).ToList();
     }

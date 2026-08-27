@@ -1,36 +1,41 @@
-ï»¿using Wangdefa.AgentMemory.Cognitive;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using Wangdefa.AgentMemory.Cognitive;
 using Wangdefa.AgentMemory.FeatureEngine.Models;
 using Wangdefa.AgentMemory.Models;
 
 namespace Wangdefa.AgentMemory.Interfaces;
 
 /// <summary>
-/// è€ç‹è®°å¿†ä½“å¯¹å¤–æ¥å£ â€” å¤–éƒ¨åªä¾èµ–è¿™ä¸ªæ¥å£
+/// ÀÏÍõ¼ÇÒäÌå¶ÔÍâ½Ó¿Ú ¡ª Íâ²¿Ö»ÒÀÀµÕâ¸ö½Ó¿Ú
 /// </summary>
 public interface IWangdefaMemory
 {
     /// <summary>
-    /// æ ¹æ®è¾“å…¥åŒ¹é…å•æ¡è®¤çŸ¥å¡ç‰‡
+    /// ¸ù¾İÊäÈëÆ¥Åäµ¥ÌõÈÏÖª¿¨Æ¬
     /// </summary>
     Task<CognitiveMatchResultModel?> CognitiveMatch(string input, List<string>? history = null, string? topicId = null);
 
     /// <summary>
-    /// æ ¹æ®è¾“å…¥ + è¯­ä¹‰æ ‡ç­¾åŒ¹é…å•æ¡è®¤çŸ¥å¡ç‰‡
+    /// ¸ù¾İÊäÈë + ÓïÒå±êÇ©Æ¥Åäµ¥ÌõÈÏÖª¿¨Æ¬
     /// </summary>
     Task<CognitiveMatchResultModel?> CognitiveMatch(string input, string[]? semanticTags, List<string>? history = null, string? topicId = null);
 
     /// <summary>
-    /// æ ¹æ®æ ‡ç­¾ code åˆ—è¡¨åŒ¹é…å•æ¡è®¤çŸ¥å¡ç‰‡
+    /// ¸ù¾İ±êÇ© code ÁĞ±íÆ¥Åäµ¥ÌõÈÏÖª¿¨Æ¬
     /// </summary>
     Task<CognitiveMatchResultModel?> CognitiveMatchByCodes(List<string> codes, string? topicId = null);
 
     /// <summary>
-    /// åŒ¹é…å¤šæ¡è®¤çŸ¥å¡ç‰‡ï¼Œè¿”å› TopN
+    /// Æ¥Åä¶àÌõÈÏÖª¿¨Æ¬£¬·µ»Ø TopN
     /// </summary>
     Task<List<CognitiveMatchResultModel>> CognitiveMatchTopN(string input, List<string>? history = null, string? topicId = null, int topN = 3);
 
     /// <summary>
-    /// å®Œæ•´å†™å…¥è®°å¿†ä½“ï¼ˆå« agentResponseï¼‰
+    /// ÍêÕûĞ´Èë¼ÇÒäÌå£¨º¬ agentResponse£©
     /// </summary>
     Task SinkAsync(
         string userInput,
@@ -47,85 +52,85 @@ public interface IWangdefaMemory
         List<PreferenceEntry>? preferences = null);
 
     /// <summary>
-    /// ä¿å­˜æ–‡ä»¶å…ƒæ•°æ®
+    /// ±£´æÎÄ¼şÔªÊı¾İ
     /// </summary>
     Task SaveMetadataAsync(string topicId, string sourcePath, string sourceType, string fileName, long fileSize, string fileHash, string mimeType = "", string status = "pending");
 
     /// <summary>
-    /// è·å–æ¥æºè·¯å¾„
+    /// »ñÈ¡À´Ô´Â·¾¶
     /// </summary>
     Task<string> GetSourcePathAsync(string topicId, string recordId);
 
     /// <summary>
-    /// æ›´æ–°å…ƒæ•°æ®çŠ¶æ€
+    /// ¸üĞÂÔªÊı¾İ×´Ì¬
     /// </summary>
     Task UpdateMetadataStatusAsync(string topicId, string fileHash, string status);
 
     /// <summary>
-    /// æ·±åº¦æ£€ç´¢ï¼ˆæŒ‰è®°å½•IDï¼‰
+    /// Éî¶È¼ìË÷£¨°´¼ÇÂ¼ID£©
     /// </summary>
     Task<DiversionIndexModel?> DeepSearch(string recordId, string? topicId = null);
 
     /// <summary>
-    /// è·å–æ€è€ƒå±‚å­˜å‚¨
+    /// »ñÈ¡Ë¼¿¼²ã´æ´¢
     /// </summary>
     IThinkingStore GetThinkingStore();
 
     /// <summary>
-    /// æ¸…ç†ä½æƒé‡è®°å¿†
+    /// ÇåÀíµÍÈ¨ÖØ¼ÇÒä
     /// </summary>
     Task<int> CleanMemoryAsync();
 
     /// <summary>
-    /// é‡ç½®æ¸…ç†è®¡æ—¶å™¨
+    /// ÖØÖÃÇåÀí¼ÆÊ±Æ÷
     /// </summary>
     void ResetCleanTimer();
 
     /// <summary>
-    /// è·å–æ¦‚è§ˆï¼ˆæŒ‰è·¯å¾„ï¼‰
+    /// »ñÈ¡¸ÅÀÀ£¨°´Â·¾¶£©
     /// </summary>
     Task<string?> GetOverview(string sourcePath);
 
     /// <summary>
-    /// è·å–åŸæ–‡ï¼ˆæŒ‰è®°å½•IDï¼‰
+    /// »ñÈ¡Ô­ÎÄ£¨°´¼ÇÂ¼ID£©
     /// </summary>
     Task<string?> GetFullText(string recordId);
 
     /// <summary>
-    /// è·å–æ ‡ç­¾ codeï¼ˆæŒ‰ tag + dimensionï¼‰
+    /// »ñÈ¡±êÇ© code£¨°´ tag + dimension£©
     /// </summary>
     string? GetTagCode(string tag, string dimension);
 
     /// <summary>
-    /// ç”¨ tag + definitions åšå­ä¸²åŒ¹é…ï¼Œè¿”å›åŒ¹é…çš„ code
-    /// ä¼˜å…ˆçº§ï¼šç²¾å‡†åŒ¹é… > dimensionåŒ¹é… > definitionå­ä¸²åŒ¹é…
+    /// ÓÃ tag + definitions ×ö×Ó´®Æ¥Åä£¬·µ»ØÆ¥ÅäµÄ code
+    /// ÓÅÏÈ¼¶£º¾«×¼Æ¥Åä > dimensionÆ¥Åä > definition×Ó´®Æ¥Åä
     /// </summary>
     string? GetTagCodeByTagAndDefinitions(string tag, string[] definitions, string dimension);
 
     /// <summary>
-    /// æ·»åŠ æ ‡ç­¾åˆ°æ ‡ç­¾æ± 
+    /// Ìí¼Ó±êÇ©µ½±êÇ©³Ø
     /// </summary>
     TagEntry AddTag(string tag, string dimension, string definition = "");
 
     /// <summary>
-    /// æ·»åŠ æ ‡ç­¾åˆ°æ ‡ç­¾æ± ï¼ˆå¸¦è¿‘ä¹‰è¯ï¼‰
+    /// Ìí¼Ó±êÇ©µ½±êÇ©³Ø£¨´ø½üÒå´Ê£©
     /// </summary>
-    TagEntry AddTagWithSynonyms(string tag, string dimension, string definition = "", string[]? synonyms = null);
+    TagEntry AddTagWithSynonyms(string tag, string dimension, string definition = "", string[]? synonyms = null, string status = "unexamined");
 
     /// <summary>
-    /// æ‰§è¡Œæ¼”åŒ–æ“ä½œï¼ˆåˆå¹¶/åˆ†è£‚/å¼ƒç”¨ï¼‰
+    /// Ö´ĞĞÑİ»¯²Ù×÷£¨ºÏ²¢/·ÖÁÑ/ÆúÓÃ£©
     /// </summary>
     Task ExecuteEvolutionAsync(List<EvolutionAction> actions);
 
     /// <summary>
-    /// è·å–æ ‡ç­¾æ¡ç›®ï¼ˆæŒ‰ codeï¼‰
+    /// »ñÈ¡±êÇ©ÌõÄ¿£¨°´ code£©
     /// </summary>
     TagEntry? GetTagEntryByCode(string code);
 
     /// <summary>
-    /// å‰ç½®å†™å…¥å¡ç‰‡æ¡†æ¶ï¼ˆä¸å« agentResponseï¼ŒçŠ¶æ€ä¸º pendingï¼‰
+    /// Ç°ÖÃĞ´Èë¿¨Æ¬¿ò¼Ü£¨²»º¬ agentResponse£¬×´Ì¬Îª pending£©
     /// </summary>
-    /// <returns>è¿”å›åˆ›å»ºçš„å¡ç‰‡IDï¼ˆcardIdï¼‰ï¼Œç”¨äºåç»­è¡¥å…¨æ—¶ç²¾ç¡®å®šä½</returns>
+    /// <returns>·µ»Ø´´½¨µÄ¿¨Æ¬ID£¨cardId£©£¬ÓÃÓÚºóĞø²¹È«Ê±¾«È·¶¨Î»</returns>
     Task<string> WriteMemoryFrame(
         string topicId,
         string userInput,
@@ -136,13 +141,13 @@ public interface IWangdefaMemory
         string? sourceType = null);
 
     /// <summary>
-    /// è¡¥å…¨å¡ç‰‡ï¼ˆæ›´æ–° agentResponse å’ŒçŠ¶æ€ï¼‰
+    /// ²¹È«¿¨Æ¬£¨¸üĞÂ agentResponse ºÍ×´Ì¬£©
     /// </summary>
-    /// <param name="cardId">å¡ç‰‡IDï¼ˆç”± WriteMemoryFrame è¿”å›ï¼‰</param>
-    /// <param name="userInput">ç”¨æˆ·è¾“å…¥ï¼ˆç”¨äº Cçº¿ æ‘˜è¦ç”Ÿæˆï¼‰</param>
-    /// <param name="agentResponse">Agentçš„å›å¤å†…å®¹</param>
-    /// <param name="status">çŠ¶æ€ï¼šcompleted / interrupted / failed</param>
-    /// <param name="errorMessage">é”™è¯¯ä¿¡æ¯ï¼ˆå½“çŠ¶æ€ä¸º failed æ—¶å¯é€‰ï¼‰</param>
+    /// <param name="cardId">¿¨Æ¬ID£¨ÓÉ WriteMemoryFrame ·µ»Ø£©</param>
+    /// <param name="userInput">ÓÃ»§ÊäÈë£¨ÓÃÓÚ CÏß ÕªÒªÉú³É£©</param>
+    /// <param name="agentResponse">AgentµÄ»Ø¸´ÄÚÈİ</param>
+    /// <param name="status">×´Ì¬£ºcompleted / interrupted / failed</param>
+    /// <param name="errorMessage">´íÎóĞÅÏ¢£¨µ±×´Ì¬Îª failed Ê±¿ÉÑ¡£©</param>
     Task CompleteMemory(
         string cardId,
         string userInput,

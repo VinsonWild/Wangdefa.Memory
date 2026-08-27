@@ -1,11 +1,16 @@
-ï»¿namespace Wangdefa.AgentMemory.Models;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+namespace Wangdefa.AgentMemory.Models;
 
 /// <summary>
-/// è®°å¿†ä½“è‡ªåŠ¨æ¸…ç†é…ç½®
+/// ¼ÇÒäÌå×Ô¶¯ÇåÀíÅäÖÃ
 /// </summary>
 public class MaintenanceSettings
 {
-    public string CleanMode { get; set; } = "æ‰‹åŠ¨";
+    public string CleanMode { get; set; } = "ÊÖ¶¯";
     public double CleanMinWeight { get; set; } = 0.3;
     public int CleanMinAgeDays { get; set; } = 30;
     public int CleanHour { get; set; } = 3;

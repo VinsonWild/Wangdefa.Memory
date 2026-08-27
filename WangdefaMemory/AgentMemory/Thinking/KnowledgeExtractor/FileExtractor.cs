@@ -1,11 +1,16 @@
-ï»¿using System.Text.Json;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using System.Text.Json;
 using Wangdefa.AgentMemory.Models;
 using Wangdefa.Contracts;
 
 namespace Wangdefa.AgentMemory.Thinking.KnowledgeExtractor;
 
 /// <summary>
-/// æ–‡ä»¶æç‚¼å™¨ - ä»æ–‡ä»¶ä¸­æç‚¼ä¸»é¢˜/å…³é”®è¯/å®ä½“
+/// ÎÄ¼şÌáÁ¶Æ÷ - ´ÓÎÄ¼şÖĞÌáÁ¶Ö÷Ìâ/¹Ø¼ü´Ê/ÊµÌå
 /// </summary>
 public class FileExtractor
 {
@@ -13,11 +18,11 @@ public class FileExtractor
 
     public FileExtractor(IChatService chatService)
     {
-        _chatService = chatService ?? throw new ArgumentNullException(nameof(chatService), "FileExtractor å¿…é¡»é…ç½® ChatService");
+        _chatService = chatService ?? throw new ArgumentNullException(nameof(chatService), "FileExtractor ±ØĞëÅäÖÃ ChatService");
     }
 
     /// <summary>
-    /// ä»å•ä¸ªæ–‡ä»¶äº‹ä»¶ä¸­æç‚¼æ´å¯Ÿ
+    /// ´Óµ¥¸öÎÄ¼şÊÂ¼şÖĞÌáÁ¶¶´²ì
     /// </summary>
     public async Task<DialogueAnalysis?> ExtractAsync(EventModel evt)
     {
@@ -28,7 +33,7 @@ public class FileExtractor
         if (string.IsNullOrEmpty(fileName))
             return null;
 
-        // å°è¯•è¯»å–æ–‡ä»¶å†…å®¹ï¼ˆå¦‚æœæ˜¯æ–‡æœ¬æ–‡ä»¶ï¼‰
+        // ³¢ÊÔ¶ÁÈ¡ÎÄ¼şÄÚÈİ£¨Èç¹ûÊÇÎÄ±¾ÎÄ¼ş£©
         string? fileContent = null;
         if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
         {
@@ -44,44 +49,44 @@ public class FileExtractor
             }
             catch
             {
-                // è¯»å–å¤±è´¥åˆ™è·³è¿‡å†…å®¹
+                // ¶ÁÈ¡Ê§°ÜÔòÌø¹ıÄÚÈİ
             }
         }
 
         try
         {
             var contentSection = string.IsNullOrEmpty(fileContent)
-                ? "ï¼ˆæ— æ³•è¯»å–æ–‡ä»¶å†…å®¹ï¼‰"
-                : $"æ–‡ä»¶å†…å®¹æ‘˜è¦ï¼š\n{fileContent}";
+                ? "£¨ÎŞ·¨¶ÁÈ¡ÎÄ¼şÄÚÈİ£©"
+                : $"ÎÄ¼şÄÚÈİÕªÒª£º\n{fileContent}";
 
             var prompt = $@"
-åˆ†æä»¥ä¸‹æ–‡ä»¶ä¿¡æ¯ï¼Œæç‚¼æ–‡ä»¶çš„æ ¸å¿ƒä¸»é¢˜ã€å…³é”®è¯å’Œå®ä½“ã€‚å¦‚æœæ²¡æœ‰å¯æç‚¼çš„å†…å®¹ï¼Œè¿”å› nullã€‚
+·ÖÎöÒÔÏÂÎÄ¼şĞÅÏ¢£¬ÌáÁ¶ÎÄ¼şµÄºËĞÄÖ÷Ìâ¡¢¹Ø¼ü´ÊºÍÊµÌå¡£Èç¹ûÃ»ÓĞ¿ÉÌáÁ¶µÄÄÚÈİ£¬·µ»Ø null¡£
 
-æ–‡ä»¶åï¼š{fileName}
-æ–‡ä»¶ç±»å‹ï¼š{Path.GetExtension(filePath ?? fileName)}
-æ“ä½œç±»å‹ï¼š{fileAction ?? "æœªçŸ¥"}
+ÎÄ¼şÃû£º{fileName}
+ÎÄ¼şÀàĞÍ£º{Path.GetExtension(filePath ?? fileName)}
+²Ù×÷ÀàĞÍ£º{fileAction ?? "Î´Öª"}
 {contentSection}
 
-è¿”å› JSON æ ¼å¼ï¼š
+·µ»Ø JSON ¸ñÊ½£º
 {{
-    ""type"": ""æ–‡ä»¶ä¸»é¢˜"",
-    ""summary"": ""ä¸€å¥è¯æ€»ç»“è¿™ä¸ªæ–‡ä»¶çš„æ ¸å¿ƒå†…å®¹"",
+    ""type"": ""ÎÄ¼şÖ÷Ìâ"",
+    ""summary"": ""Ò»¾ä»°×Ü½áÕâ¸öÎÄ¼şµÄºËĞÄÄÚÈİ"",
     ""details"": {{
-        ""trigger"": ""æ–‡ä»¶æ¥æºæˆ–è§¦å‘åœºæ™¯"",
-        ""action"": ""ç”¨æˆ·å¯¹æ–‡ä»¶çš„æ“ä½œ"",
-        ""result"": ""æ–‡ä»¶çš„ä¸»è¦å†…å®¹æˆ–ç”¨é€”""
+        ""trigger"": ""ÎÄ¼şÀ´Ô´»ò´¥·¢³¡¾°"",
+        ""action"": ""ÓÃ»§¶ÔÎÄ¼şµÄ²Ù×÷"",
+        ""result"": ""ÎÄ¼şµÄÖ÷ÒªÄÚÈİ»òÓÃÍ¾""
     }},
-    ""tags"": [""æ ‡ç­¾1"", ""æ ‡ç­¾2"", ""æ ‡ç­¾3""],
+    ""tags"": [""±êÇ©1"", ""±êÇ©2"", ""±êÇ©3""],
     ""relation_tags"": [
-        {{ ""from"": ""æ–‡ä»¶"", ""to"": ""ç›®æ ‡å®ä½“"", ""strength"": 0.9 }}
+        {{ ""from"": ""ÎÄ¼ş"", ""to"": ""Ä¿±êÊµÌå"", ""strength"": 0.9 }}
     ],
     ""confidence"": 0.8
 }}
 
-è¦æ±‚ï¼š
-- å¦‚æœæ–‡ä»¶æ˜¯äºŒè¿›åˆ¶æ–‡ä»¶ä¸”æ— æ³•è¯»å–å†…å®¹ï¼ŒåŸºäºæ–‡ä»¶åå’Œè·¯å¾„æ¨æ–­ä¸»é¢˜
-- æ ‡ç­¾ 2-4 ä¸ªï¼Œä»£è¡¨æ–‡ä»¶çš„æ ¸å¿ƒä¸»é¢˜
-- åªè¿”å› JSONï¼Œä¸è¦å…¶ä»–å†…å®¹";
+ÒªÇó£º
+- Èç¹ûÎÄ¼şÊÇ¶ş½øÖÆÎÄ¼şÇÒÎŞ·¨¶ÁÈ¡ÄÚÈİ£¬»ùÓÚÎÄ¼şÃûºÍÂ·¾¶ÍÆ¶ÏÖ÷Ìâ
+- ±êÇ© 2-4 ¸ö£¬´ú±íÎÄ¼şµÄºËĞÄÖ÷Ìâ
+- Ö»·µ»Ø JSON£¬²»ÒªÆäËûÄÚÈİ";
 
             var result = await _chatService.ChatAsync(prompt);
             if (string.IsNullOrEmpty(result)) return null;
@@ -95,12 +100,12 @@ public class FileExtractor
 
             return new DialogueAnalysis
             {
-                Id = $"åˆ†æ_{DateTime.Now:yyyyMMdd_HHmmss}",
+                Id = $"·ÖÎö_{DateTime.Now:yyyyMMdd_HHmmss}",
                 TopicId = evt.TopicId,
-                Type = "æ–‡ä»¶ä¸»é¢˜",
-                Summary = extraction.Summary ?? $"æ–‡ä»¶ï¼š{fileName}",
+                Type = "ÎÄ¼şÖ÷Ìâ",
+                Summary = extraction.Summary ?? $"ÎÄ¼ş£º{fileName}",
                 Details = extraction.Details ?? new DialogueAnalysisDetails(),
-                Tags = extraction.Tags ?? new[] { "æ–‡ä»¶", Path.GetExtension(filePath ?? fileName).TrimStart('.') },
+                Tags = extraction.Tags ?? new[] { "ÎÄ¼ş", Path.GetExtension(filePath ?? fileName).TrimStart('.') },
                 RelationTags = extraction.RelationTags ?? new List<RelationTag>(),
                 Confidence = extraction.Confidence,
                 SourceEventIds = new List<string> { evt.EventId },
@@ -111,7 +116,7 @@ public class FileExtractor
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"âš ï¸ æ–‡ä»¶æç‚¼å¤±è´¥: {ex.Message}");
+            Console.WriteLine($"?? ÎÄ¼şÌáÁ¶Ê§°Ü: {ex.Message}");
             return null;
         }
     }

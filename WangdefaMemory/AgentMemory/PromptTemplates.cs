@@ -1,4 +1,9 @@
-﻿namespace WangdefaMemory.AgentMemory;
+﻿// Copyright © 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+namespace WangdefaMemory.AgentMemory;
 
 public static class PromptTemplates
 {
@@ -133,6 +138,21 @@ public static class PromptTemplates
 A线特征标签：{structuredTags}
 缺失标签列表（需填充语义定义）：{missingTags}
 
+【标签合并判断】（仅当存在待确认标签时执行）
+
+待确认标签列表：
+{pendingTags}
+
+请对每个待确认标签判断：它是否与标签池中已有的 active 标签表述同一件事？
+- 如果是，输出 "merge_to: 目标标签名"
+- 如果否，输出 "activate"
+
+输出格式：
+"pending_tags_decision": {
+    "待确认标签名1": "merge_to: 已有标签名",
+    "待确认标签名2": "activate"
+}
+
 【反馈判断】
 除了摘要分析，你还需要判断用户对上一轮回复是否满意。
 
@@ -152,6 +172,10 @@ A线特征标签：{structuredTags}
     "缺失标签1": "填充的语义定义",
     "缺失标签2": "填充的语义定义"
   },
+  "pending_tags_decision": {
+    "待确认标签名1": "merge_to: 已有标签名",
+    "待确认标签名2": "activate"
+  },
   "feedback": {
     "status": "confirmed",
     "reason": "判断理由（一句话）"
@@ -162,6 +186,7 @@ A线特征标签：{structuredTags}
 - 为缺失标签列表中的每个标签填充语义定义（definition）
 - feedback 必须包含 status 和 reason
 - 如果无法判断，status 填 "ignored"
+- pending_tags_decision 仅在存在待确认标签时输出
 - 只输出 JSON，不要其他内容
 """;
     }

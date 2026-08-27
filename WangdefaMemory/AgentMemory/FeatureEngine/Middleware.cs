@@ -1,4 +1,4 @@
-// ================================================================
+﻿// ================================================================
 // Middleware.cs — 中间件：特征推演 + 分流取数 + 组合
 // ================================================================
 
@@ -113,20 +113,20 @@ public class Middleware
                 continue;
             }
 
-            // 1.3 未命中 → 新增标签
+            // 1.3 未命中 → 新增标签（status = "unexamined"）
             if (!matched)
             {
                 var definitionStr = st.Definitions != null && st.Definitions.Length > 0
                     ? string.Join(", ", st.Definitions)
                     : "";
 
-                _memory.AddTagWithSynonyms(st.Tag, st.Dimension, definitionStr, st.Synonyms);
+                _memory.AddTagWithSynonyms(st.Tag, st.Dimension, definitionStr, st.Synonyms, status: "unexamined");
 
                 var newCode = _memory.GetTagCode(st.Tag, st.Dimension);
                 if (newCode != null)
                 {
                     hitCodes.Add(newCode);
-                    Console.WriteLine($"🆕 新增标签并命中: {st.Tag} → {newCode}");
+                    Console.WriteLine($"🆕 新增标签（待确认）: {st.Tag} → {newCode}");
                 }
                 else
                 {
@@ -138,8 +138,6 @@ public class Middleware
 
         // ============================================================
         // 2. ★ 写卡片框架（C线前置）
-        //    - 和检索并行，用的是同一批标签
-        //    - 保证"存"和"查"的标签一致
         // ============================================================
         var topicId = sessionId;
         var tagTexts = structuredTags.Select(t => t.Tag).ToList();

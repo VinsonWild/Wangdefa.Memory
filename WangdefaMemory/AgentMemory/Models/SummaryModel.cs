@@ -1,39 +1,44 @@
-ï»¿namespace Wangdefa.AgentMemory.Models;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+namespace Wangdefa.AgentMemory.Models;
 
 /// <summary>
-/// æ¦‚è¦æ¨¡å‹ â€” çŸ¥è¯†å±‚çš„ç»“æ„åŒ–æ‘˜è¦
-/// ç”¨äºå¿«é€Ÿæ£€ç´¢å’ŒåŒ¹é…ï¼Œä¾›ç³»ç»Ÿ/LLMåšç¬¬ä¸€è½®åˆ¤æ–­
-/// é•¿åº¦ï¼š10-30å­—ï¼ˆä¸€å¥è¯ï¼‰
+/// ¸ÅÒªÄ£ĞÍ ¡ª ÖªÊ¶²ãµÄ½á¹¹»¯ÕªÒª
+/// ÓÃÓÚ¿ìËÙ¼ìË÷ºÍÆ¥Åä£¬¹©ÏµÍ³/LLM×öµÚÒ»ÂÖÅĞ¶Ï
+/// ³¤¶È£º10-30×Ö£¨Ò»¾ä»°£©
 /// </summary>
 public class SummaryModel
 {
-    /// <summary>æ¦‚è¦ID</summary>
+    /// <summary>¸ÅÒªID</summary>
     public string Id { get; set; } = "";
 
-    /// <summary>æ‰€å±è¯é¢˜ID</summary>
+    /// <summary>ËùÊô»°ÌâID</summary>
     public string TopicId { get; set; } = "";
 
-    /// <summary>å…³è”çš„è®¤çŸ¥è®°å½•ID</summary>
+    /// <summary>¹ØÁªµÄÈÏÖª¼ÇÂ¼ID</summary>
     public string CognitiveRecordId { get; set; } = "";
 
-    /// <summary>æ ¸å¿ƒå…³é”®è¯ï¼ˆ2-4ä¸ªï¼‰</summary>
+    /// <summary>ºËĞÄ¹Ø¼ü´Ê£¨2-4¸ö£©</summary>
     public string[] Keywords { get; set; } = Array.Empty<string>();
 
-    /// <summary>å®ä½“åˆ—è¡¨ï¼ˆäººå/åœ°å/ç»„ç»‡åç­‰ï¼‰</summary>
+    /// <summary>ÊµÌåÁĞ±í£¨ÈËÃû/µØÃû/×éÖ¯ÃûµÈ£©</summary>
     public string[] Entities { get; set; } = Array.Empty<string>();
 
-    /// <summary>æ—¶é—´èŒƒå›´ï¼ˆå¦‚ "2026-07-01 ~ 2026-09-30"ï¼‰</summary>
+    /// <summary>Ê±¼ä·¶Î§£¨Èç "2026-07-01 ~ 2026-09-30"£©</summary>
     public string? DateRange { get; set; }
 
-    /// <summary>ä¸€å¥è¯æ‘˜è¦ï¼ˆ10-30å­—ï¼‰</summary>
+    /// <summary>Ò»¾ä»°ÕªÒª£¨10-30×Ö£©</summary>
     public string Summary { get; set; } = "";
 
-    /// <summary>ç½®ä¿¡åº¦ï¼ˆ0-1ï¼‰</summary>
+    /// <summary>ÖÃĞÅ¶È£¨0-1£©</summary>
     public double Confidence { get; set; } = 0.5;
 
-    /// <summary>åˆ›å»ºæ—¶é—´</summary>
+    /// <summary>´´½¨Ê±¼ä</summary>
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-    /// <summary>æ–‡ä»¶æœ€åä¿®æ”¹æ—¶é—´ï¼ˆä»…æ–‡ä»¶ç±»å‹ï¼‰</summary>
+    /// <summary>ÎÄ¼ş×îºóĞŞ¸ÄÊ±¼ä£¨½öÎÄ¼şÀàĞÍ£©</summary>
     public DateTime? ModifiedAt { get; set; }
 }

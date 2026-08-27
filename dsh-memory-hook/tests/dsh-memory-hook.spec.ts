@@ -1,3 +1,8 @@
+// Copyright © 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
 import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import LlmRuntime, { createUserMessage, type ContentBlock } from '@deepseek-ai/dsh-llm'
@@ -80,7 +85,7 @@ function textOf(content: string | ContentBlock[]): string {
 
 function requestsIncludeMemory(adapter: MockAdapter): boolean {
   return adapter.requests.some(r =>
-    r.messages.some(m => textOf(m.content as ContentBlock[]).includes('已检索到的历史记忆')))
+    r.messages.some(m => textOf(m.content as ContentBlock[]).includes('已检索到的历史记�?)))
 }
 
 describe('dsh-memory-hook', () => {
@@ -110,7 +115,7 @@ describe('dsh-memory-hook', () => {
     send(agent, 'hello memory')
     await waitForIdle(ctx, agent)
 
-    // Only the real user prompt triggered recall — the injected plugin message
+    // Only the real user prompt triggered recall �?the injected plugin message
     // re-enters pre-step but is skipped via the source filter (no loop).
     expect(processCalls).toHaveLength(1)
 

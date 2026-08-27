@@ -1,11 +1,11 @@
 ﻿// ================================================================
-// MemorySinkService.cs — 记忆体写入（含偏好存储）
-// 修复指针一致性问题 v2
+// MemorySinkService.cs — 记忆体写入（含偏好存储 + 标签合并）
 // ================================================================
 
 using System.Text.Json;
 using Wangdefa.AgentMemory.Cognitive;
 using Wangdefa.AgentMemory.FeatureEngine;
+using Wangdefa.AgentMemory.FeatureEngine.Models;
 using Wangdefa.AgentMemory.Interfaces;
 using Wangdefa.AgentMemory.Knowledge;
 using Wangdefa.AgentMemory.Models;
@@ -215,7 +215,7 @@ public class MemorySinkService : IMemorySinkService
     }
 
     // ============================================================
-    // ★ 修复：前置写入卡片框架（统一ID）
+    // ★ 前置写入卡片框架（统一ID）
     // ============================================================
     public async Task<string> WriteFrameAsync(
         string topicId,
@@ -226,7 +226,6 @@ public class MemorySinkService : IMemorySinkService
         string? sourcePath = null,
         string? sourceType = null)
     {
-        // ★★★ 统一时间戳，三处共用 ★★★
         var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
         var cardId = $"认知_{timestamp}";
         var indexId = $"记录_{timestamp}";
@@ -255,19 +254,16 @@ public class MemorySinkService : IMemorySinkService
             TopicId = topicId
         };
 
-        // 1. 保存认知卡片
         var cognitivePath = Path.Combine(_recordsPath, $"{cardId}.json");
         var cognitiveJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(cognitivePath, cognitiveJson);
 
-        // 2. 打标签
         if (tags.Count > 0)
         {
             _featureEngine.TagCard(cardId, tags.ToList(), "cognitive", null);
             Console.WriteLine($"✅ C线框架已写入: {cardId}，状态: pending");
         }
 
-        // 3. ★ 保存索引记录（使用统一 indexId）
         var diversionIndex = new DiversionIndexModel
         {
             CognitiveRecordId = cardId,
@@ -283,12 +279,10 @@ public class MemorySinkService : IMemorySinkService
 
         await SaveIndexWithIdAsync(indexId, diversionIndex, topicId);
 
-        // 更新认知卡片的 RecordId
         cognitiveRecord.RecordId = indexId;
         var updatedJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(cognitivePath, updatedJson);
 
-        // 4. ★ 保存事件（使用统一 eventId）
         var evt = new EventModel
         {
             EventId = eventId,
@@ -328,7 +322,7 @@ public class MemorySinkService : IMemorySinkService
     }
 
     // ============================================================
-    // ★ 修复：补全卡片（修正事件查找）
+    // ★ 补全卡片 + 标签合并（含粗筛 + ContentTags 同步）
     // ============================================================
     public async Task CompleteAsync(
         string cardId,
@@ -350,10 +344,9 @@ public class MemorySinkService : IMemorySinkService
             throw new InvalidOperationException($"卡片反序列化失败: {cognitivePath}");
         }
 
-        // ★ 从卡片中获取事件ID（写框架时已保存）
+        // ★ 从卡片中获取事件ID
         string? eventId = cognitiveRecord.EventId;
 
-        // 如果卡片里没有 EventId（兼容旧数据），从 cardId 推导
         if (string.IsNullOrEmpty(eventId))
         {
             var parts = cardId.Split('_');
@@ -365,7 +358,6 @@ public class MemorySinkService : IMemorySinkService
             }
         }
 
-        // ★ 用事件ID加载事件
         EventModel? eventModel = null;
         if (!string.IsNullOrEmpty(eventId))
         {
@@ -378,7 +370,6 @@ public class MemorySinkService : IMemorySinkService
             }
         }
 
-        // 兜底：用 CognitiveRecordId 查
         if (eventModel == null)
         {
             Console.WriteLine($"[CompleteAsync] ⚠️ 仍未找到事件，尝试用 CognitiveRecordId 查询...");
@@ -390,12 +381,51 @@ public class MemorySinkService : IMemorySinkService
         var contentTags = cognitiveRecord.Insight?.ContentTags ?? Array.Empty<string>();
         var structuredTagsFromCard = contentTags.Select(t => new StructuredTag { Tag = t }).ToArray();
 
+        // ★ 获取本轮新建的 unexamined 标签
+        var pendingTagNames = cognitiveRecord.Insight?.ContentTags?
+            .Where(t => _featureEngine.Tags.GetEntry(t)?.Status == "unexamined")
+            .ToList() ?? new List<string>();
+
+        var allPendingTags = _featureEngine.Tags.GetUnexaminedTagsByNames(pendingTagNames);
+
+        // ★ 粗筛：只把需要 LLM 判断的标签送进去
+        var tagsToJudge = new List<TagEntry>();
+        foreach (var pending in allPendingTags)
+        {
+            var candidates = _featureEngine.Tags.FindActiveByName(pending.Tag);
+            if (candidates.Count == 0)
+            {
+                _featureEngine.Tags.Activate(pending.Code);
+                Console.WriteLine($"[C线] 标签已激活（无同名候选）: {pending.Tag}");
+                continue;
+            }
+
+            double maxScore = 0;
+            foreach (var candidate in candidates)
+            {
+                var score = _featureEngine.Tags.CalculateSimilarity(pending, candidate);
+                if (score > maxScore) maxScore = score;
+            }
+
+            if (maxScore > 0.3)
+            {
+                tagsToJudge.Add(pending);
+                Console.WriteLine($"[C线] 标签进入 LLM 判断: {pending.Tag} (相似度: {maxScore:F2})");
+            }
+            else
+            {
+                _featureEngine.Tags.Activate(pending.Code);
+                Console.WriteLine($"[C线] 标签已激活（相似度 {maxScore:F2} <= 0.3）: {pending.Tag}");
+            }
+        }
+
         var summaryAnalyzer = new SummaryAnalyzer(_chatService);
         var summaryResult = await summaryAnalyzer.AnalyzeAsync(
             userInput: userInput,
             agentResponse: agentResponse,
             structuredTags: structuredTagsFromCard,
-            missingTags: null
+            missingTags: null,
+            pendingTags: tagsToJudge
         );
 
         // 更新摘要
@@ -463,7 +493,7 @@ public class MemorySinkService : IMemorySinkService
         var updatedJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(cognitivePath, updatedJson);
 
-        // ★ 更新事件（找到了才更新）
+        // ★ 更新事件
         if (eventModel != null)
         {
             eventModel.Data.AgentResponse = agentResponse;
@@ -510,6 +540,43 @@ public class MemorySinkService : IMemorySinkService
             ""
         );
 
+        // ============================================================
+        // ★ C线标签合并执行 + ContentTags 同步
+        // ============================================================
+        foreach (var decision in summaryResult.PendingTagsDecision)
+        {
+            var tagName = decision.Key;
+            var action = decision.Value;
+
+            var pendingTag = allPendingTags.FirstOrDefault(t => t.Tag == tagName);
+            if (pendingTag == null) continue;
+
+            if (action.StartsWith("merge_to:"))
+            {
+                var targetTagName = action.Replace("merge_to:", "").Trim();
+                var targetTag = _featureEngine.Tags.GetEntry(targetTagName);
+                if (targetTag != null)
+                {
+                    // 1. 合并标签池
+                    _featureEngine.Tags.MergeTags(pendingTag.Code, targetTag.Code);
+
+                    // 2. ★ 同步更新所有相关卡片的 ContentTags
+                    var cardIds = _featureEngine.Passwords.GetCards(targetTag.Code);
+                    foreach (var cid in cardIds)
+                    {
+                        UpdateCardContentTag(cid, pendingTag.Tag, targetTagName);
+                    }
+
+                    Console.WriteLine($"[C线] 已合并标签: {tagName} → {targetTagName}");
+                }
+            }
+            else if (action == "activate")
+            {
+                _featureEngine.Tags.Activate(pendingTag.Code);
+                Console.WriteLine($"[C线] 标签已激活: {tagName}");
+            }
+        }
+
         Console.WriteLine($"✅ CompleteAsync: 卡片已补全 {cardId}，状态: {status}");
     }
 
@@ -517,9 +584,6 @@ public class MemorySinkService : IMemorySinkService
     // 辅助方法
     // ============================================================
 
-    /// <summary>
-    /// 用指定ID保存索引
-    /// </summary>
     private async Task SaveIndexWithIdAsync(string indexId, DiversionIndexModel index, string topicId)
     {
         var chatPath = _thinkingStore.GetTopicPath(topicId);
@@ -593,5 +657,31 @@ public class MemorySinkService : IMemorySinkService
         var words = text.Split(new[] { ' ', '\n', '\r', '，', '。', '、', '！', '？', ',', '.', '!' }, StringSplitOptions.RemoveEmptyEntries);
         var freq = words.GroupBy(w => w).ToDictionary(g => g.Key, g => g.Count());
         return freq.OrderByDescending(kv => kv.Value).Take(10).Select(kv => kv.Key).ToArray();
+    }
+
+    // ============================================================
+    // ★ ContentTags 同步更新
+    // ============================================================
+
+    private void UpdateCardContentTag(string cardId, string oldTag, string newTag)
+    {
+        var path = Path.Combine(_recordsPath, $"{cardId}.json");
+        if (!File.Exists(path)) return;
+
+        var json = File.ReadAllText(path);
+        var record = JsonSerializer.Deserialize<CognitiveRecordModel>(json);
+        if (record?.Insight?.ContentTags == null) return;
+
+        var tags = record.Insight.ContentTags.ToList();
+        var index = tags.IndexOf(oldTag);
+        if (index >= 0)
+        {
+            tags[index] = newTag;
+            record.Insight.ContentTags = tags.ToArray();
+
+            var updatedJson = JsonSerializer.Serialize(record, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(path, updatedJson);
+            Console.WriteLine($"[C线] 卡片 {cardId} ContentTags 已更新: {oldTag} → {newTag}");
+        }
     }
 }

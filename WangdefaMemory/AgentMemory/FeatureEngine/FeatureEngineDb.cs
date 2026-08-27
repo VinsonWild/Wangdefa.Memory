@@ -1,4 +1,9 @@
-ï»¿using Microsoft.Data.Sqlite;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using Microsoft.Data.Sqlite;
 using Wangdefa.AgentMemory.FeatureEngine.Models;
 
 namespace Wangdefa.AgentMemory.FeatureEngine;
@@ -21,7 +26,7 @@ public class FeatureEngineDb
 
         var cmd = conn.CreateCommand();
         cmd.CommandText = @"
-            -- æ ‡ç­¾æ± 
+            -- ±êÇ©³Ø
             CREATE TABLE IF NOT EXISTS tag_dictionary (
                 tag_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 tag TEXT UNIQUE NOT NULL,
@@ -38,7 +43,7 @@ public class FeatureEngineDb
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
 
-            -- å¯†ç ç°¿
+            -- ÃÜÂë²¾
             CREATE TABLE IF NOT EXISTS password_book (
                 code TEXT NOT NULL,
                 card_id TEXT NOT NULL,
@@ -48,7 +53,7 @@ public class FeatureEngineDb
                 PRIMARY KEY (code, card_id)
             );
 
-            -- ç‰¹å¾ç»Ÿè®¡
+            -- ÌØÕ÷Í³¼Æ
             CREATE TABLE IF NOT EXISTS feature_stats (
                 code TEXT PRIMARY KEY,
                 hit_count INTEGER DEFAULT 0,
@@ -58,7 +63,7 @@ public class FeatureEngineDb
                 avg_weight REAL DEFAULT 0.5
             );
 
-            -- å…±ç°è®°å½•
+            -- ¹²ÏÖ¼ÇÂ¼
             CREATE TABLE IF NOT EXISTS co_occurrence (
                 code1 TEXT NOT NULL,
                 code2 TEXT NOT NULL,
@@ -67,7 +72,7 @@ public class FeatureEngineDb
                 PRIMARY KEY (code1, code2)
             );
 
-            -- ç´¢å¼•
+            -- Ë÷Òı
             CREATE INDEX IF NOT EXISTS idx_password_book_code ON password_book(code);
             CREATE INDEX IF NOT EXISTS idx_password_book_card_id ON password_book(card_id);
             CREATE INDEX IF NOT EXISTS idx_tag_dictionary_tag ON tag_dictionary(tag);
@@ -82,18 +87,18 @@ public class FeatureEngineDb
     {
         var tags = new[]
         {
-            new { tag = "å·¥ä½œ", code = "TAG_SCENE_WORK", type = "scene", def = "å·¥ä½œåœºæ™¯" },
-            new { tag = "ç”Ÿæ´»", code = "TAG_SCENE_LIFE", type = "scene", def = "ç”Ÿæ´»åœºæ™¯" },
-            new { tag = "å­¦ä¹ ", code = "TAG_SCENE_STUDY", type = "scene", def = "å­¦ä¹ åœºæ™¯" },
-            new { tag = "å¨±ä¹", code = "TAG_SCENE_ENTERTAINMENT", type = "scene", def = "å¨±ä¹åœºæ™¯" },
-            new { tag = "æŸ¥è¯¢", code = "TAG_TASK_QUERY", type = "task", def = "ç”¨æˆ·æŸ¥è¯¢ä¿¡æ¯" },
-            new { tag = "åˆ›ä½œ", code = "TAG_TASK_CREATION", type = "task", def = "ç”¨æˆ·åˆ›ä½œå†…å®¹" },
-            new { tag = "è§„åˆ’", code = "TAG_TASK_PLANNING", type = "task", def = "ç”¨æˆ·åˆ¶å®šè®¡åˆ’" },
-            new { tag = "æ‰§è¡Œ", code = "TAG_TASK_EXECUTE", type = "task", def = "ç”¨æˆ·æ‰§è¡Œæ“ä½œ" },
-            new { tag = "é—²èŠ", code = "TAG_TASK_CHAT", type = "task", def = "ç”¨æˆ·é—²èŠ" },
-            new { tag = "éœ€è¦å‚è€ƒ", code = "TAG_CONSTRAINT_REFERENCE", type = "constraint", def = "ç”¨æˆ·éœ€è¦å‚è€ƒå·²æœ‰èµ„æ–™" },
-            new { tag = "è¦æœ‰æ–°æ„", code = "TAG_CONSTRAINT_INNOVATION", type = "constraint", def = "ç”¨æˆ·éœ€è¦åˆ›æ–°ã€å·®å¼‚åŒ–" },
-            new { tag = "è¦å¯æ‰§è¡Œ", code = "TAG_CONSTRAINT_ACTIONABLE", type = "constraint", def = "ç”¨æˆ·éœ€è¦å…·ä½“å¯æ‰§è¡Œ" },
+            new { tag = "¹¤×÷", code = "TAG_SCENE_WORK", type = "scene", def = "¹¤×÷³¡¾°" },
+            new { tag = "Éú»î", code = "TAG_SCENE_LIFE", type = "scene", def = "Éú»î³¡¾°" },
+            new { tag = "Ñ§Ï°", code = "TAG_SCENE_STUDY", type = "scene", def = "Ñ§Ï°³¡¾°" },
+            new { tag = "ÓéÀÖ", code = "TAG_SCENE_ENTERTAINMENT", type = "scene", def = "ÓéÀÖ³¡¾°" },
+            new { tag = "²éÑ¯", code = "TAG_TASK_QUERY", type = "task", def = "ÓÃ»§²éÑ¯ĞÅÏ¢" },
+            new { tag = "´´×÷", code = "TAG_TASK_CREATION", type = "task", def = "ÓÃ»§´´×÷ÄÚÈİ" },
+            new { tag = "¹æ»®", code = "TAG_TASK_PLANNING", type = "task", def = "ÓÃ»§ÖÆ¶¨¼Æ»®" },
+            new { tag = "Ö´ĞĞ", code = "TAG_TASK_EXECUTE", type = "task", def = "ÓÃ»§Ö´ĞĞ²Ù×÷" },
+            new { tag = "ÏĞÁÄ", code = "TAG_TASK_CHAT", type = "task", def = "ÓÃ»§ÏĞÁÄ" },
+            new { tag = "ĞèÒª²Î¿¼", code = "TAG_CONSTRAINT_REFERENCE", type = "constraint", def = "ÓÃ»§ĞèÒª²Î¿¼ÒÑÓĞ×ÊÁÏ" },
+            new { tag = "ÒªÓĞĞÂÒâ", code = "TAG_CONSTRAINT_INNOVATION", type = "constraint", def = "ÓÃ»§ĞèÒª´´ĞÂ¡¢²îÒì»¯" },
+            new { tag = "Òª¿ÉÖ´ĞĞ", code = "TAG_CONSTRAINT_ACTIONABLE", type = "constraint", def = "ÓÃ»§ĞèÒª¾ßÌå¿ÉÖ´ĞĞ" },
         };
 
         using var conn = new SqliteConnection(_connectionString);

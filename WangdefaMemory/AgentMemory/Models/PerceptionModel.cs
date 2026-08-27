@@ -1,24 +1,29 @@
-ï»¿using System.Text.Json.Serialization;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using System.Text.Json.Serialization;
 
 namespace Wangdefa.AgentMemory.Models;
 
 public class PerceptionModel
 {
-    [JsonPropertyName("æ–‡ä½“")]
+    [JsonPropertyName("ÎÄÌå")]
     public string Genre { get; set; } = "";
 
-    [JsonPropertyName("æ—¶é—´")]
+    [JsonPropertyName("Ê±¼ä")]
     public string Time { get; set; } = "";
 
-    [JsonPropertyName("åœºæ™¯")]
+    [JsonPropertyName("³¡¾°")]
     public string Scene { get; set; } = "";
 
-    [JsonPropertyName("æƒ…ç»ª")]
+    [JsonPropertyName("ÇéĞ÷")]
     public string Emotion { get; set; } = "";
 
-    [JsonPropertyName("çŠ¶æ€")]
+    [JsonPropertyName("×´Ì¬")]
     public string State { get; set; } = "";
 
-    [JsonPropertyName("æƒ…æ™¯")]
+    [JsonPropertyName("Çé¾°")]
     public string Context { get; set; } = "";
 }

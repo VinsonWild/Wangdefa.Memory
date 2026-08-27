@@ -1,12 +1,17 @@
-ï»¿using Wangdefa.AgentMemory.Cognitive;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using Wangdefa.AgentMemory.Cognitive;
 using Wangdefa.AgentMemory.FeatureEngine;
 using Wangdefa.AgentMemory.Models;
 
 namespace Wangdefa.AgentMemory;
 
 /// <summary>
-/// è®°å¿†ä½“ç®¡é“ - Açº¿ + ä¸­é—´ä»¶ ç»Ÿä¸€å…¥å£
-/// è¾“å…¥ç”¨æˆ·æ¶ˆæ¯ï¼Œè¾“å‡º enrichedInputï¼ˆæ„å›¾ + è®°å¿† + åå¥½ï¼‰
+/// ¼ÇÒäÌå¹ÜµÀ - AÏß + ÖĞ¼ä¼ş Í³Ò»Èë¿Ú
+/// ÊäÈëÓÃ»§ÏûÏ¢£¬Êä³ö enrichedInput£¨ÒâÍ¼ + ¼ÇÒä + Æ«ºÃ£©
 /// </summary>
 public class MemoryPipeline
 {
@@ -20,20 +25,20 @@ public class MemoryPipeline
     }
 
     /// <summary>
-    /// å¤„ç†ç”¨æˆ·è¾“å…¥ï¼Œè¿”å› enrichedInput
+    /// ´¦ÀíÓÃ»§ÊäÈë£¬·µ»Ø enrichedInput
     /// </summary>
-    /// <param name="input">ç”¨æˆ·è¾“å…¥</param>
-    /// <param name="sessionId">ä¼šè¯ID</param>
-    /// <returns>MemoryPipelineResult åŒ…å« enrichedInput å’Œä¸­é—´ç»“æœ</returns>
+    /// <param name="input">ÓÃ»§ÊäÈë</param>
+    /// <param name="sessionId">»á»°ID</param>
+    /// <returns>MemoryPipelineResult °üº¬ enrichedInput ºÍÖĞ¼ä½á¹û</returns>
     public async Task<MemoryPipelineResult> ProcessAsync(string input, string sessionId = "default")
     {
-        // ===== 1. Açº¿ï¼šæ„å›¾åˆ†æ =====
+        // ===== 1. AÏß£ºÒâÍ¼·ÖÎö =====
         var intentResult = await _intentAnalyzer.AnalyzeAsync(input, sessionId);
-        Console.WriteLine($"ğŸ§  æ„å›¾åˆ†æ: {intentResult.Intent}, route: {intentResult.Route}");
+        Console.WriteLine($"?? ÒâÍ¼·ÖÎö: {intentResult.Intent}, route: {intentResult.Route}");
 
-        // ===== 2. ä¸­é—´ä»¶ï¼šç‰¹å¾æ¨æ¼” + è®°å¿†æ£€ç´¢ + ä¸Šä¸‹æ–‡ç»„è£… =====
-        var (enrichedInput, cognitiveResult, missingTags, frameId) = await _middleware.ProcessAsync(input, sessionId, intentResult);
-        Console.WriteLine($"ğŸ“¤ ä¸­é—´ä»¶å®Œæˆï¼ŒenrichedInput é•¿åº¦: {enrichedInput.Length}");
+        // ===== 2. ÖĞ¼ä¼ş£ºÌØÕ÷ÍÆÑİ + ¼ÇÒä¼ìË÷ + ÉÏÏÂÎÄ×é×° =====
+        var (enrichedInput, cognitiveResult, missingTags, frameId) = await _middleware.ProcessAsync(input, sessionId, intentResult); 
+        Console.WriteLine($"?? ÖĞ¼ä¼şÍê³É£¬enrichedInput ³¤¶È: {enrichedInput.Length}");
 
         return new MemoryPipelineResult
         {
@@ -47,32 +52,32 @@ public class MemoryPipeline
 }
 
 /// <summary>
-/// è®°å¿†ä½“ç®¡é“å¤„ç†ç»“æœ
+/// ¼ÇÒäÌå¹ÜµÀ´¦Àí½á¹û
 /// </summary>
 public class MemoryPipelineResult
 {
     /// <summary>
-    /// ç»„è£…å¥½çš„ä¸Šä¸‹æ–‡å­—ç¬¦ä¸²ï¼ˆæ„å›¾ + è®°å¿† + åå¥½ï¼‰
+    /// ×é×°ºÃµÄÉÏÏÂÎÄ×Ö·û´®£¨ÒâÍ¼ + ¼ÇÒä + Æ«ºÃ£©
     /// </summary>
     public string EnrichedInput { get; set; } = "";
 
     /// <summary>
-    /// æ„å›¾åˆ†æç»“æœ
+    /// ÒâÍ¼·ÖÎö½á¹û
     /// </summary>
     public IntentAnalysisResult IntentResult { get; set; } = new();
 
     /// <summary>
-    /// è®¤çŸ¥åŒ¹é…ç»“æœ
+    /// ÈÏÖªÆ¥Åä½á¹û
     /// </summary>
     public CognitiveMatchResultModel? CognitiveResult { get; set; }
 
     /// <summary>
-    /// æœªå‘½ä¸­çš„æ ‡ç­¾
+    /// Î´ÃüÖĞµÄ±êÇ©
     /// </summary>
     public StructuredTag[] MissingTags { get; set; } = Array.Empty<StructuredTag>();
 
     /// <summary>
-    /// æ¡†æ¶å¡ç‰‡IDï¼ˆç”±ä¸­é—´ä»¶å†™å…¥æ—¶è¿”å›ï¼Œä¾›è¡¥å…¨æ—¶ç²¾ç¡®å®šä½ï¼‰
+    /// ¿ò¼Ü¿¨Æ¬ID£¨ÓÉÖĞ¼ä¼şĞ´ÈëÊ±·µ»Ø£¬¹©²¹È«Ê±¾«È·¶¨Î»£©
     /// </summary>
     public string? FrameId { get; set; }
 }

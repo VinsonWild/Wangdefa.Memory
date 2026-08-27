@@ -1,5 +1,10 @@
-ï»¿// ================================================================
-// HarnessResponseParser.cs â€” ç»“æ„åŒ–è¾“å‡ºè§£æï¼ˆçº¯é™æ€å·¥å…·ç±»ï¼‰
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+// ================================================================
+// HarnessResponseParser.cs ¡ª ½á¹¹»¯Êä³ö½âÎö£¨´¿¾²Ì¬¹¤¾ßÀà£©
 // ================================================================
 
 using System.Text.Json;
@@ -67,7 +72,7 @@ public static class HarnessResponseParser
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[HarnessResponseParser] è§£æå¤±è´¥: {ex.Message}");
+            Console.WriteLine($"[HarnessResponseParser] ½âÎöÊ§°Ü: {ex.Message}");
         }
 
         return result;
@@ -79,7 +84,7 @@ public static class HarnessResponseParser
         {
             Perception = new PerceptionModel(),
             Route = "shallow",
-            Intent = "é—²èŠ",
+            Intent = "ÏĞÁÄ",
             ContextSummary = "",
             NeedTools = false,
             ToolNames = Array.Empty<string>(),
@@ -117,7 +122,7 @@ public static class HarnessResponseParser
                     result.Route = route.GetString() ?? "shallow";
 
                 if (root.TryGetProperty("intent", out var intent))
-                    result.Intent = intent.GetString() ?? "é—²èŠ";
+                    result.Intent = intent.GetString() ?? "ÏĞÁÄ";
 
                 if (root.TryGetProperty("context_summary", out var summary))
                     result.ContextSummary = summary.GetString() ?? "";
@@ -128,7 +133,7 @@ public static class HarnessResponseParser
                 if (root.TryGetProperty("memory_injection_mode", out var mode))
                 {
                     result.MemoryInjectionMode = mode.GetString() ?? "off";
-                    Console.WriteLine($"[HarnessResponseParser] è®°å¿†æ³¨å…¥æ¨¡å¼: {result.MemoryInjectionMode}");
+                    Console.WriteLine($"[HarnessResponseParser] ¼ÇÒä×¢ÈëÄ£Ê½: {result.MemoryInjectionMode}");
                 }
 
                 if (root.TryGetProperty("tool_names", out var toolNames) && toolNames.ValueKind == JsonValueKind.Array)
@@ -141,10 +146,10 @@ public static class HarnessResponseParser
                             list.Add(name);
                     }
                     result.ToolNames = list.ToArray();
-                    Console.WriteLine($"[HarnessResponseParser] è§£æåˆ°å·¥å…·å: {string.Join(", ", result.ToolNames)}");
+                    Console.WriteLine($"[HarnessResponseParser] ½âÎöµ½¹¤¾ßÃû: {string.Join(", ", result.ToolNames)}");
                 }
 
-                // â˜…â˜…â˜… structured_tags è§£æ â˜…â˜…â˜…
+                // ¡ï¡ï¡ï structured_tags ½âÎö ¡ï¡ï¡ï
                 if (root.TryGetProperty("structured_tags", out var structuredTags) && structuredTags.ValueKind == JsonValueKind.Array)
                 {
                     var tagList = new List<StructuredTag>();
@@ -178,7 +183,7 @@ public static class HarnessResponseParser
                             Tag = tagName,
                             Dimension = dimension,
                             Code = item.TryGetProperty("code", out var c) ? c.GetString() ?? "" : "",
-                            // â˜… æ­£å¸¸è§£æ definitionsï¼Œä¸ä¸¢å¼ƒ
+                            // ¡ï Õı³£½âÎö definitions£¬²»¶ªÆú
                             Definitions = item.TryGetProperty("definitions", out var defs) && defs.ValueKind == JsonValueKind.Array
                                 ? defs.EnumerateArray().Select(d => d.GetString() ?? "").Where(s => !string.IsNullOrEmpty(s)).ToArray()
                                 : (item.TryGetProperty("definition", out var singleDef) ? new[] { singleDef.GetString() ?? "" } : Array.Empty<string>()),
@@ -195,12 +200,12 @@ public static class HarnessResponseParser
                         }
 
                         tagList.Add(tag);
-                        Console.WriteLine($"[HarnessResponseParser] è§£æåˆ°æ ‡ç­¾: {tagName}");
+                        Console.WriteLine($"[HarnessResponseParser] ½âÎöµ½±êÇ©: {tagName}");
                     }
                     result.StructuredTags = tagList.ToArray();
                 }
 
-                // â˜…â˜…â˜… åªæœ‰ structured_tags å®Œå…¨ä¸ºç©ºæ—¶ï¼Œæ‰èµ° semantic_tags å…œåº• â˜…â˜…â˜…
+                // ¡ï¡ï¡ï Ö»ÓĞ structured_tags ÍêÈ«Îª¿ÕÊ±£¬²Å×ß semantic_tags ¶µµ× ¡ï¡ï¡ï
                 if (result.StructuredTags.Length == 0 && root.TryGetProperty("semantic_tags", out var semanticTags) && semanticTags.ValueKind == JsonValueKind.Array)
                 {
                     var tagList = new List<StructuredTag>();
@@ -218,7 +223,7 @@ public static class HarnessResponseParser
                                 Action = "add",
                                 Synonyms = Array.Empty<string>()
                             });
-                            Console.WriteLine($"[HarnessResponseParser] semantic_tags å…œåº•: {tagText}");
+                            Console.WriteLine($"[HarnessResponseParser] semantic_tags ¶µµ×: {tagText}");
                         }
                     }
                     result.StructuredTags = tagList.ToArray();
@@ -227,17 +232,17 @@ public static class HarnessResponseParser
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[HarnessResponseParser] è§£ææ„å›¾å¤±è´¥: {ex.Message}");
+            Console.WriteLine($"[HarnessResponseParser] ½âÎöÒâÍ¼Ê§°Ü: {ex.Message}");
         }
 
-        Console.WriteLine($"[HarnessResponseParser] æœ€ç»ˆ StructuredTags: {string.Join(", ", result.StructuredTags.Select(t => t.Tag))}");
+        Console.WriteLine($"[HarnessResponseParser] ×îÖÕ StructuredTags: {string.Join(", ", result.StructuredTags.Select(t => t.Tag))}");
 
         return result;
     }
 }
 
 /// <summary>
-/// Harness ç»“æ„åŒ–è¾“å‡ºç»“æœï¼ˆå›å¤ç”Ÿæˆï¼‰
+/// Harness ½á¹¹»¯Êä³ö½á¹û£¨»Ø¸´Éú³É£©
 /// </summary>
 public class HarnessStructuredResult
 {
@@ -251,7 +256,7 @@ public class HarnessStructuredResult
 }
 
 /// <summary>
-/// ç»“æ„åŒ–æ ‡ç­¾
+/// ½á¹¹»¯±êÇ©
 /// </summary>
 public class StructuredTag
 {
@@ -264,13 +269,13 @@ public class StructuredTag
 }
 
 /// <summary>
-/// æ„å›¾åˆ†æç»“æœ
+/// ÒâÍ¼·ÖÎö½á¹û
 /// </summary>
 public class IntentAnalysisResult
 {
     public PerceptionModel Perception { get; set; } = new();
     public string Route { get; set; } = "shallow";
-    public string Intent { get; set; } = "é—²èŠ";
+    public string Intent { get; set; } = "ÏĞÁÄ";
     public string ContextSummary { get; set; } = "";
     public bool NeedTools { get; set; } = false;
     public string[] ToolNames { get; set; } = Array.Empty<string>();

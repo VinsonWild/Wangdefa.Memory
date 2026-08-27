@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿
+using System.Text.Json;
 using Wangdefa.AgentMemory.Cognitive;
 using Wangdefa.AgentMemory.FeatureEngine;
 using Wangdefa.AgentMemory.FeatureEngine.Models;
@@ -162,9 +163,9 @@ public class WangdefaMemory : IWangdefaMemory
     public TagEntry AddTag(string tag, string dimension, string definition = "")
         => _featureEngine.Tags.Add(tag, "content", definition, dimension, "auto");
 
-    public TagEntry AddTagWithSynonyms(string tag, string dimension, string definition = "", string[]? synonyms = null)
+    public TagEntry AddTagWithSynonyms(string tag, string dimension, string definition = "", string[]? synonyms = null, string status = "unexamined")
     {
-        return _featureEngine.Tags.AddWithSynonyms(tag, "content", definition, dimension, "auto", synonyms);
+        return _featureEngine.Tags.AddWithSynonyms(tag, "content", definition, dimension, "auto", synonyms, status);
     }
 
     public TagEntry? GetTagEntryByCode(string code)

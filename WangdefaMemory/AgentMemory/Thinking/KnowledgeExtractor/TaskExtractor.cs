@@ -1,11 +1,16 @@
-ï»¿using System.Text.Json;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using System.Text.Json;
 using Wangdefa.AgentMemory.Models;
 using Wangdefa.Contracts;
 
 namespace Wangdefa.AgentMemory.Thinking.KnowledgeExtractor;
 
 /// <summary>
-/// ä»»åŠ¡æç‚¼å™¨ - ä»ä»»åŠ¡æ‰§è¡Œä¸­æç‚¼å·¥ä½œæµæ¨¡å¼
+/// ÈÎÎñÌáÁ¶Æ÷ - ´ÓÈÎÎñÖ´ĞĞÖĞÌáÁ¶¹¤×÷Á÷Ä£Ê½
 /// </summary>
 public class TaskExtractor
 {
@@ -13,11 +18,11 @@ public class TaskExtractor
 
     public TaskExtractor(IChatService chatService)
     {
-        _chatService = chatService ?? throw new ArgumentNullException(nameof(chatService), "TaskExtractor å¿…é¡»é…ç½® ChatService");
+        _chatService = chatService ?? throw new ArgumentNullException(nameof(chatService), "TaskExtractor ±ØĞëÅäÖÃ ChatService");
     }
 
     /// <summary>
-    /// ä»å•ä¸ªä»»åŠ¡äº‹ä»¶ä¸­æç‚¼æ´å¯Ÿ
+    /// ´Óµ¥¸öÈÎÎñÊÂ¼şÖĞÌáÁ¶¶´²ì
     /// </summary>
     public async Task<DialogueAnalysis?> ExtractAsync(EventModel evt)
     {
@@ -31,36 +36,36 @@ public class TaskExtractor
         try
         {
             var stepsInfo = steps != null && steps.Count > 0
-                ? $"æ‰§è¡Œæ­¥éª¤ï¼š\n{string.Join("\n", steps.Select((s, i) => $"  {i + 1}. {s.Action}: {s.Result ?? "è¿›è¡Œä¸­"}"))}"
-                : "ï¼ˆæ— è¯¦ç»†æ­¥éª¤ï¼‰";
+                ? $"Ö´ĞĞ²½Öè£º\n{string.Join("\n", steps.Select((s, i) => $"  {i + 1}. {s.Action}: {s.Result ?? "½øĞĞÖĞ"}"))}"
+                : "£¨ÎŞÏêÏ¸²½Öè£©";
 
             var prompt = $@"
-åˆ†æä»¥ä¸‹ä»»åŠ¡æ‰§è¡Œè®°å½•ï¼Œæç‚¼å·¥ä½œæµæ¨¡å¼æˆ–å¸¸ç”¨ä»»åŠ¡ç±»å‹ã€‚
+·ÖÎöÒÔÏÂÈÎÎñÖ´ĞĞ¼ÇÂ¼£¬ÌáÁ¶¹¤×÷Á÷Ä£Ê½»ò³£ÓÃÈÎÎñÀàĞÍ¡£
 
-ä»»åŠ¡åç§°ï¼š{taskName}
-ä»»åŠ¡ç»“æœï¼š{resultSummary ?? "æœªçŸ¥"}
+ÈÎÎñÃû³Æ£º{taskName}
+ÈÎÎñ½á¹û£º{resultSummary ?? "Î´Öª"}
 {stepsInfo}
 
-è¿”å› JSON æ ¼å¼ï¼š
+·µ»Ø JSON ¸ñÊ½£º
 {{
-    ""type"": ""å·¥ä½œæµæ¨¡å¼/å¸¸ç”¨ä»»åŠ¡"",
-    ""summary"": ""ä¸€å¥è¯æ€»ç»“è¿™ä¸ªä»»åŠ¡æ¨¡å¼"",
+    ""type"": ""¹¤×÷Á÷Ä£Ê½/³£ÓÃÈÎÎñ"",
+    ""summary"": ""Ò»¾ä»°×Ü½áÕâ¸öÈÎÎñÄ£Ê½"",
     ""details"": {{
-        ""trigger"": ""è§¦å‘æ¡ä»¶"",
-        ""action"": ""æ‰§è¡Œæµç¨‹"",
-        ""result"": ""å…¸å‹ç»“æœ""
+        ""trigger"": ""´¥·¢Ìõ¼ş"",
+        ""action"": ""Ö´ĞĞÁ÷³Ì"",
+        ""result"": ""µäĞÍ½á¹û""
     }},
-    ""tags"": [""æ ‡ç­¾1"", ""æ ‡ç­¾2""],
+    ""tags"": [""±êÇ©1"", ""±êÇ©2""],
     ""relation_tags"": [
-        {{ ""from"": ""ä»»åŠ¡"", ""to"": ""ç›®æ ‡"", ""strength"": 0.9 }}
+        {{ ""from"": ""ÈÎÎñ"", ""to"": ""Ä¿±ê"", ""strength"": 0.9 }}
     ],
     ""confidence"": 0.8
 }}
 
-è¦æ±‚ï¼š
-- å¦‚æœæ˜¯å•æ¬¡ã€ä¸´æ—¶ä»»åŠ¡ï¼Œè¿”å› null
-- åªæç‚¼å¯é‡å¤çš„å·¥ä½œæµæ¨¡å¼
-- åªè¿”å› JSONï¼Œä¸è¦å…¶ä»–å†…å®¹";
+ÒªÇó£º
+- Èç¹ûÊÇµ¥´Î¡¢ÁÙÊ±ÈÎÎñ£¬·µ»Ø null
+- Ö»ÌáÁ¶¿ÉÖØ¸´µÄ¹¤×÷Á÷Ä£Ê½
+- Ö»·µ»Ø JSON£¬²»ÒªÆäËûÄÚÈİ";
 
             var result = await _chatService.ChatAsync(prompt);
             if (string.IsNullOrEmpty(result)) return null;
@@ -74,12 +79,12 @@ public class TaskExtractor
 
             return new DialogueAnalysis
             {
-                Id = $"åˆ†æ_{DateTime.Now:yyyyMMdd_HHmmss}",
+                Id = $"·ÖÎö_{DateTime.Now:yyyyMMdd_HHmmss}",
                 TopicId = evt.TopicId,
-                Type = "å·¥ä½œæµæ¨¡å¼",
-                Summary = extraction.Summary ?? $"å¸¸ç”¨ä»»åŠ¡ï¼š{taskName}",
+                Type = "¹¤×÷Á÷Ä£Ê½",
+                Summary = extraction.Summary ?? $"³£ÓÃÈÎÎñ£º{taskName}",
                 Details = extraction.Details ?? new DialogueAnalysisDetails(),
-                Tags = extraction.Tags ?? new[] { "ä»»åŠ¡", taskName },
+                Tags = extraction.Tags ?? new[] { "ÈÎÎñ", taskName },
                 RelationTags = extraction.RelationTags ?? new List<RelationTag>(),
                 Confidence = extraction.Confidence,
                 SourceEventIds = new List<string> { evt.EventId },
@@ -90,7 +95,7 @@ public class TaskExtractor
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"âš ï¸ ä»»åŠ¡æç‚¼å¤±è´¥: {ex.Message}");
+            Console.WriteLine($"?? ÈÎÎñÌáÁ¶Ê§°Ü: {ex.Message}");
             return null;
         }
     }

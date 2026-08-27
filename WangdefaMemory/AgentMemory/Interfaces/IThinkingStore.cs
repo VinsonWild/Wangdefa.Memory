@@ -1,9 +1,14 @@
-ï»¿using Wangdefa.AgentMemory.Models;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using Wangdefa.AgentMemory.Models;
 
 namespace Wangdefa.AgentMemory.Interfaces;
 
 /// <summary>
-/// æ€è€ƒå±‚å­˜å‚¨æ¥å£
+/// Ë¼¿¼²ã´æ´¢½Ó¿Ú
 /// </summary>
 public interface IThinkingStore
 {
@@ -17,7 +22,7 @@ public interface IThinkingStore
     Task<ChatRecord?> LoadChatRecord(string recordId, string topicId);
 
     /// <summary>
-    /// ä»äº‹ä»¶å­˜å‚¨åŠ è½½äº‹ä»¶
+    /// ´ÓÊÂ¼ş´æ´¢¼ÓÔØÊÂ¼ş
     /// </summary>
     Task<EventModel?> LoadEvent(string eventId);
 }

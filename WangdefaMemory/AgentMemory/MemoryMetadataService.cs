@@ -1,4 +1,9 @@
-锘縰sing System.Text.Json;
+// Copyright 漏 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+using System.Text.Json;
 
 namespace Wangdefa.AgentMemory;
 
@@ -34,7 +39,7 @@ public class MemoryMetadataService
             created_at = DateTime.Now
         };
 
-        var path = Path.Combine(_knowledgePath, topicId, $"鍏冩暟鎹甠{DateTime.Now:yyyyMMdd_HHmmss}.json");
+        var path = Path.Combine(_knowledgePath, topicId, $"元数据_{DateTime.Now:yyyyMMdd_HHmmss}.json");
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         await File.WriteAllTextAsync(path, JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true }));
     }
@@ -44,7 +49,7 @@ public class MemoryMetadataService
         var metadataDir = Path.Combine(_knowledgePath, topicId);
         if (!Directory.Exists(metadataDir)) return "";
 
-        foreach (var file in Directory.GetFiles(metadataDir, "鍏冩暟鎹甠*.json"))
+        foreach (var file in Directory.GetFiles(metadataDir, "元数据_*.json"))
         {
             var json = await File.ReadAllTextAsync(file);
             var doc = JsonDocument.Parse(json);
@@ -59,7 +64,7 @@ public class MemoryMetadataService
         var metadataDir = Path.Combine(_knowledgePath, topicId);
         if (!Directory.Exists(metadataDir)) return;
 
-        foreach (var file in Directory.GetFiles(metadataDir, "鍏冩暟鎹甠*.json"))
+        foreach (var file in Directory.GetFiles(metadataDir, "元数据_*.json"))
         {
             var json = await File.ReadAllTextAsync(file);
             var doc = JsonDocument.Parse(json);

@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
-[![NuGet](https://img.shields.io/badge/NuGet-v1.1.5-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
+[![NuGet](https://img.shields.io/badge/NuGet-v1.1.6-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
 [![DSH Plugin](https://img.shields.io/badge/DSH-Plugin-blue.svg)](https://github.com/topics/dsh-plugin)
 
 ---
@@ -356,6 +356,19 @@ Agent 生成回复 → 调用 SaveMemory(frameId, agentResponse)
 ---
 
 ## 📄 更新说明
+
+
+### v1.1.6 (2026-08-28)
+
+新增 C线标签自动合并机制：新建标签标记为 unexamined（待审），C线 补全时自动检查同名标签，通过交并比粗筛 + LLM 精判，将语义相同的标签自动合并，减少标签池冗余，提升检索精度。不新增 LLM 调用，不阻塞用户。
+
+修复近义词被错误创建为独立标签的问题：AddWithSynonyms 不再递归为每个近义词创建独立标签，近义词仅作为主标签的 synonyms 字段值存储，避免大量 unexamined 标签永久滞留待审状态。
+
+修复标签合并后卡片 ContentTags 不同步的问题：合并标签时同步更新所有关联卡片的 ContentTags，将旧标签名替换为目标标签名，保持卡片展示与标签池状态一致。
+
+标签待审状态命名优化：从 pending 改为 unexamined，避免与卡片 pending 状态混淆。
+
+清理 newTagNames 死链：废弃 Middleware → MemoryPipeline 的显式传递链路，统一走 ContentTags 反查，代码更清晰。
 
 
 ### v1.1.5 (2026-08-22)

@@ -1,12 +1,17 @@
-ï»¿namespace Wangdefa.AgentMemory.Signal;
+// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
+
+namespace Wangdefa.AgentMemory.Signal;
 
 /// <summary>
-/// æƒé‡è®¡ç®—å™¨ - å››æ®µå¼è®°å¿†è¡°å‡
+/// È¨ÖØ¼ÆËãÆ÷ - ËÄ¶ÎÊ½¼ÇÒäË¥¼õ
 /// </summary>
 public static class WeightCalculator
 {
     /// <summary>
-    /// è®¡ç®—æƒé‡ï¼ˆ0.20-1.0ï¼‰
+    /// ¼ÆËãÈ¨ÖØ£¨0.20-1.0£©
     /// </summary>
     public static double Calculate(DateTime createdAt, DateTime lastAccessAt)
     {
@@ -17,26 +22,26 @@ public static class WeightCalculator
 
         if (age <= 20)
         {
-            // å¼ºåŠ¿è®°å¿†ï¼š1.0 â†’ 0.85
+            // Ç¿ÊÆ¼ÇÒä£º1.0 ¡ú 0.85
             baseWeight = 1.0 - (age / 20) * 0.15;
         }
         else if (age <= 60)
         {
-            // æœ‰å°è±¡ï¼š0.85 â†’ 0.50
+            // ÓĞÓ¡Ïó£º0.85 ¡ú 0.50
             baseWeight = 0.85 - ((age - 20) / 40) * 0.35;
         }
         else if (age <= 150)
         {
-            // é€æ¸è¡°å‡ï¼š0.50 â†’ 0.20
+            // Öğ½¥Ë¥¼õ£º0.50 ¡ú 0.20
             baseWeight = 0.50 - ((age - 60) / 90) * 0.30;
         }
         else
         {
-            // éœ€è¦è¢«å”¤é†’ï¼šä¿åº•0.20
+            // ĞèÒª±»»½ĞÑ£º±£µ×0.20
             baseWeight = 0.20;
         }
 
-        // è®¿é—®åŠ æƒï¼šæœ€è¿‘7å¤©å†…è¢«è®¿é—®è¿‡ï¼Œè½»å¾®ä¸Šä¿®
+        // ·ÃÎÊ¼ÓÈ¨£º×î½ü7ÌìÄÚ±»·ÃÎÊ¹ı£¬ÇáÎ¢ÉÏĞŞ
         if (recall <= 7)
         {
             var boost = 1.0 + (1 - recall / 7) * 0.15;
