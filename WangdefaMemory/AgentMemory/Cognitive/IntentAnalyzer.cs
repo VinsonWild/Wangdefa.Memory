@@ -172,7 +172,7 @@ public class IntentAnalyzer
     /// </summary>
     private static StructuredTag[] ExtractTagsByRules(string input)
     {
-        var separators = new[] { ' ', '£¬', '¡£', '¡¢', '£¡', '£¿', ',', '.', '!', '?', '\n', '\r', '\t', ';', '£º', '£»' };
+        var separators = new char[] { ' ', '\uFF0C', '\u3002', '\u3001', '\uFF01', '\uFF1F', ',', '.', '!', '?', '\n', '\r', '\t', ';', '\uFF1A', '\uFF1B' };
         var words = input.Split(separators, StringSplitOptions.RemoveEmptyEntries);
 
         var tags = new List<string>();

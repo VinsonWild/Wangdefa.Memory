@@ -237,7 +237,7 @@ public class FeatureEngine
 
     private List<string> SplitWords(string input)
     {
-        var separators = new[] { ' ', '£¬', '¡£', '¡¢', '£¡', '£¿', ',', '.', '!', '?', '\n', '\r', '\t' };
+        var separators = new char[] { ' ', '\uFF0C', '\u3002', '\u3001', '\uFF01', '\uFF1F', ',', '.', '!', '?', '\n', '\r', '\t' };
         var words = input.Split(separators, StringSplitOptions.RemoveEmptyEntries);
         return words.Where(w => w.Length >= 2).ToList();
     }
