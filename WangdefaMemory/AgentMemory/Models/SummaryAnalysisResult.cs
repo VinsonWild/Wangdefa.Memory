@@ -33,4 +33,25 @@ public class SummaryAnalysisResult
     /// 标签合并决策（key: 待确认标签名, value: merge_to:xxx 或 activate）
     /// </summary>
     public Dictionary<string, string> PendingTagsDecision { get; set; } = new();
+
+    /// <summary>
+    /// 本轮反馈（独立于偏好，单次评价）
+    /// </summary>
+    public FeedbackEntry? Feedback { get; set; }
+}
+
+/// <summary>
+/// 反馈条目（单次评价，非长期偏好）
+/// </summary>
+public class FeedbackEntry
+{
+    /// <summary>
+    /// 反馈状态：confirmed / rejected / partial / ignored
+    /// </summary>
+    public string Status { get; set; } = "";
+
+    /// <summary>
+    /// 反馈原因说明
+    /// </summary>
+    public string Reason { get; set; } = "";
 }

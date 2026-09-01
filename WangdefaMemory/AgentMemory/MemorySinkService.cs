@@ -419,10 +419,64 @@ public class MemorySinkService : IMemorySinkService
             }
         }
 
+        // ★ 获取上一轮回复（概览原文）
+        string previousAgentResponse = "";
+        var topicId = cognitiveRecord.TopicId ?? "default";
+        var chatPath = _thinkingStore.GetTopicPath(topicId);
+        if (Directory.Exists(chatPath))
+        {
+            var files = Directory.GetFiles(chatPath, "记录_*.json")
+                .OrderByDescending(f => f)
+                .Take(2)
+                .ToArray();
+            if (files.Length >= 2)
+            {
+                try
+                {
+                    var prevJson = await File.ReadAllTextAsync(files[1]);
+                    var prevIndex = JsonSerializer.Deserialize<DiversionIndexModel>(prevJson);
+                    if (prevIndex != null && !string.IsNullOrEmpty(prevIndex.CognitiveRecordId))
+                    {
+                        var prevCardPath = Path.Combine(_recordsPath, $"{prevIndex.CognitiveRecordId}.json");
+                        if (File.Exists(prevCardPath))
+                        {
+                            var prevCardJson = await File.ReadAllTextAsync(prevCardPath);
+                            var prevCard = JsonSerializer.Deserialize<CognitiveRecordModel>(prevCardJson);
+                            if (prevCard != null && !string.IsNullOrEmpty(prevCard.SourcePath))
+                            {
+                                // 从知识库目录读取概览原文
+                                var overviewPath = Path.Combine(_knowledgePath, prevCard.SourcePath);
+                                if (File.Exists(overviewPath))
+                                {
+                                    var overviewJson = await File.ReadAllTextAsync(overviewPath);
+                                    var overviewModel = JsonSerializer.Deserialize<OverviewModel>(overviewJson);
+                                    previousAgentResponse = overviewModel?.Text ?? "";
+                                    Console.WriteLine($"[CompleteAsync] 获取到上一轮概览，长度: {previousAgentResponse.Length}");
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"[CompleteAsync] 概览文件不存在: {overviewPath}");
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine($"[CompleteAsync] 上一轮卡片无 SourcePath");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[CompleteAsync] 取上一轮回复失败: {ex.Message}");
+                }
+            }
+        }
+
         var summaryAnalyzer = new SummaryAnalyzer(_chatService);
         var summaryResult = await summaryAnalyzer.AnalyzeAsync(
             userInput: userInput,
             agentResponse: agentResponse,
+            previousAgentResponse: previousAgentResponse,
             structuredTags: structuredTagsFromCard,
             missingTags: null,
             pendingTags: tagsToJudge
@@ -458,16 +512,46 @@ public class MemorySinkService : IMemorySinkService
             Console.WriteLine($"✅ 已更新 {summaryResult.MissingTagDefinitions.Count} 个缺失标签定义");
         }
 
-        // 更新偏好
+        // ★ 更新偏好（合并模式，不覆盖）
         if (summaryResult.Preferences != null && summaryResult.Preferences.Count > 0)
         {
-            cognitiveRecord.Insight.Preferences = summaryResult.Preferences;
+            var existing = cognitiveRecord.Insight.Preferences ?? new List<PreferenceEntry>();
+            cognitiveRecord.Insight.Preferences = MergePreferences(existing, summaryResult.Preferences);
+            Console.WriteLine($"[CompleteAsync] 偏好已合并，共 {cognitiveRecord.Insight.Preferences.Count} 条");
         }
+        else
+        {
+            cognitiveRecord.Insight.Preferences ??= new List<PreferenceEntry>();
+            Console.WriteLine($"[CompleteAsync] 本轮无新偏好，保留原有 {cognitiveRecord.Insight.Preferences.Count} 条");
+        }
+
+        // ★ 存储 feedback 到事件
+        if (summaryResult.Feedback != null && !string.IsNullOrEmpty(summaryResult.Feedback.Status))
+        {
+            if (eventModel != null)
+            {
+                eventModel.Result.Extra ??= new Dictionary<string, object>();
+                eventModel.Result.Extra["feedback"] = new
+                {
+                    summaryResult.Feedback.Status,
+                    summaryResult.Feedback.Reason
+                };
+                Console.WriteLine($"[CompleteAsync] 反馈已保存: {summaryResult.Feedback.Status} - {summaryResult.Feedback.Reason}");
+            }
+        }
+
+        // ★ 写入 feedback 到卡片（独立于概览，无论是否有概览都执行）
+        if (summaryResult.Feedback != null && !string.IsNullOrEmpty(summaryResult.Feedback.Status))
+        {
+            cognitiveRecord.FeedbackStatus = summaryResult.Feedback.Status;
+            cognitiveRecord.FeedbackReason = summaryResult.Feedback.Reason;
+            Console.WriteLine($"[CompleteAsync] 卡片反馈已更新: {summaryResult.Feedback.Status}");
+        }
+        // 如果本轮没有 feedback，保留卡片原有的 FeedbackStatus（不清空）
 
         // 保存概览
         if (!string.IsNullOrEmpty(summaryResult.Overview))
         {
-            var topicId = cognitiveRecord.TopicId ?? "default";
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             var overviewModel = new OverviewModel
             {
@@ -657,6 +741,50 @@ public class MemorySinkService : IMemorySinkService
         var words = text.Split(new[] { ' ', '\n', '\r', '，', '。', '、', '！', '？', ',', '.', '!' }, StringSplitOptions.RemoveEmptyEntries);
         var freq = words.GroupBy(w => w).ToDictionary(g => g.Key, g => g.Count());
         return freq.OrderByDescending(kv => kv.Value).Take(10).Select(kv => kv.Key).ToArray();
+    }
+
+    /// <summary>
+    /// 合并偏好列表（不覆盖，同key合并）
+    /// </summary>
+    private List<PreferenceEntry> MergePreferences(List<PreferenceEntry> existing, List<PreferenceEntry> incoming)
+    {
+        var dict = existing.ToDictionary(p => p.Key, p => p);
+
+        foreach (var inc in incoming)
+        {
+            if (dict.TryGetValue(inc.Key, out var existingPref))
+            {
+                // 同key：置信度累加（上限0.95）
+                existingPref.Confidence = Math.Min(0.95, existingPref.Confidence + 0.05);
+
+                // 值不同时用新值覆盖（新值更准确）
+                if (existingPref.Value != inc.Value)
+                {
+                    existingPref.Value = inc.Value;
+                    Console.WriteLine($"[MergePreferences] 偏好更新: {inc.Key} = {inc.Value}");
+                }
+                else
+                {
+                    Console.WriteLine($"[MergePreferences] 偏好强化: {inc.Key} (confidence: {existingPref.Confidence:F2})");
+                }
+
+                // scene 合并
+                if (!string.IsNullOrEmpty(inc.Scene) && !existingPref.Scene.Contains(inc.Scene))
+                {
+                    existingPref.Scene = string.IsNullOrEmpty(existingPref.Scene)
+                        ? inc.Scene
+                        : existingPref.Scene + "," + inc.Scene;
+                }
+            }
+            else
+            {
+                // 新增偏好
+                dict[inc.Key] = inc;
+                Console.WriteLine($"[MergePreferences] 新增偏好: {inc.Key} = {inc.Value}");
+            }
+        }
+
+        return dict.Values.ToList();
     }
 
     // ============================================================

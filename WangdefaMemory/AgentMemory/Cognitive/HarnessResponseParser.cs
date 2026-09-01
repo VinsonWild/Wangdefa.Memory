@@ -136,6 +136,12 @@ public static class HarnessResponseParser
                     Console.WriteLine($"[HarnessResponseParser] 记忆注入模式: {result.MemoryInjectionMode}");
                 }
 
+                if (root.TryGetProperty("response_style", out var style))
+                {
+                    result.ResponseStyle = style.GetString() ?? "balanced";
+                    Console.WriteLine($"[HarnessResponseParser] 回复风格: {result.ResponseStyle}");
+                }
+
                 if (root.TryGetProperty("tool_names", out var toolNames) && toolNames.ValueKind == JsonValueKind.Array)
                 {
                     var list = new List<string>();
@@ -283,4 +289,5 @@ public class IntentAnalysisResult
     public string Overview { get; set; } = "";
     public StructuredTag[] StructuredTags { get; set; } = Array.Empty<StructuredTag>();
     public string MemoryInjectionMode { get; set; } = "off";
+    public string ResponseStyle { get; set; } = "balanced";
 }

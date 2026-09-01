@@ -40,6 +40,9 @@ public class PreferenceEntry
 
     [JsonPropertyName("confidence")]
     public double Confidence { get; set; } = 0.5;
+
+    [JsonPropertyName("scene")]
+    public string Scene { get; set; } = "";
 }
 
 /// <summary>

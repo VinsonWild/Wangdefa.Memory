@@ -75,52 +75,91 @@ public static class PromptTemplates
 请严格遵守，按以下 JSON 格式输出（注意：必须输出合法的 JSON 对象）：
 
 {
-  "perception": {
-    "Genre": "文体（记叙文/散文/议论文/说明文/意识流）",
-    "Time": "时间（现在/昨天/今天/刚才/上次）",
-    "Scene": "场景（工作/生活/学习/娱乐）",
-    "Emotion": "情绪（疲惫/开心/着急/中性）",
-    "State": "状态（正常/想被理解/放松/紧张）",
-    "Context": "情景（技术讨论/工作执行/生活闲聊/情绪表达）"
-  },
-  "user_input": "用户原始输入原文",
-  "route": "shallow/medium/deep",
-  "intent": "查询/创作/规划/执行/闲聊",
-  "need_tools": true/false,
-  "context_summary": "一句话总结当前用户意图需求（30字以内）",
-  "structured_tags": [
-    {
-      "tag": "从用户输入中提取的核心关键词",
-      "dimension": "内容/场景/任务/约束",
-      "definitions": ["语义描述1", "语义描述2", "语义描述3"],
-      "synonyms": ["近义词1", "近义词2"]
-    }
-  ],
-  "memory_injection_mode": "off/summary/detail/full"
+"perception": {
+"Genre": "文体（记叙文/散文/议论文/说明文/意识流）",
+"Time": "时间（现在/昨天/今天/刚才/上次）",
+"Scene": "场景（工作/生活/学习/娱乐）",
+"Emotion": "情绪（疲惫/开心/着急/中性）",
+"State": "状态（正常/想被理解/放松/紧张）",
+"Context": "情景（技术讨论/工作执行/生活闲聊/情绪表达）"
+},
+"user_input": "用户原始输入原文",
+"route": "shallow/medium/deep",
+"intent": "查询/创作/规划/执行/闲聊",
+"need_tools": true/false,
+"context_summary": "一句话总结当前用户意图需求（30字以内）",
+"response_style": "concise/balanced/detailed/executive",
+"structured_tags": [
+{
+"tag": "从用户输入中提取的核心关键词",
+"dimension": "内容/场景/任务/约束",
+"definitions": ["语义描述1", "语义描述2", "语义描述3"],
+"synonyms": ["近义词1", "近义词2"]
+}
+],
+"memory_injection_mode": "off/summary/detail/full"
 }
 
+【response_style 判断规则】
+根据用户意图和场景，判断本次回复应该采用什么风格：
+
+concise（简洁）：适用于闲聊、简单问答、情绪表达。回复应简短直接，不展开背景，不追问。
+
+balanced（适中）：适用于一般工作对话、信息查询。回复可适度展开，可按需追问一次。
+
+detailed（详细）：适用于深度讨论、分析问题、制定规划。回复可充分展开，可多轮追问，可提供备选方案。
+
+executive（决策）：适用于需要最终结论、决策建议、行动方案的场景。回复必须给出明确结论或建议，结构清晰，不加无关信息。
+
+判断依据：
+
+闲聊/情绪表达 → concise
+
+简单查询/确认 → concise 或 balanced
+
+工作讨论/信息整合 → balanced 或 detailed
+
+复杂分析/规划/决策 → detailed 或 executive
+
+用户明确要求详细/简单时，优先满足用户要求
+
 【标签生成规则】
-- tag：从用户输入中提取的核心关键词，2-6个
-- dimension：可选值为 内容/场景/任务/约束
-- definitions：对提取的tag 做的语义描述，每个语义解释10字以内，每个tag最少2个语义解释，覆盖不同角度，输出时组合成数组形式。
-- synonyms：该标签的近义词列表，2-4个，用于后续匹配
-- 不需要从标签池中选择，直接根据语义生成
-- 可以参考【近期记忆参考】中的标签，帮助理解用户可能涉及的话题领域
+
+tag：从用户输入中提取的核心关键词，2-6个
+
+dimension：可选值为 内容/场景/任务/约束
+
+definitions：对提取的tag 做的语义描述，每个语义解释10字以内，每个tag最少2个语义解释，覆盖不同角度，输出时组合成数组形式。
+
+synonyms：该标签的近义词列表，2-4个，用于后续匹配
+
+不需要从标签池中选择，直接根据语义生成
+
+可以参考【近期记忆参考】中的标签，帮助理解用户可能涉及的话题领域
 
 【need_tools 判断规则】
-- true：用户需要调用【自定义外部工具】（如 fetch_url、run_script 等）才能完成任务
-- false：仅需 Harness 内置工具（file_access_* / file_memory_* / web_search）即可完成，或纯闲聊
+
+true：用户需要调用【自定义外部工具】（如 fetch_url、run_script 等）才能完成任务
+
+false：仅需 Harness 内置工具（file_access_* / file_memory_* / web_search）即可完成，或纯闲聊
 
 【memory_injection_mode 判断规则】
-- off：纯闲聊、情绪表达，不需要注入历史记忆
-- summary：需要参考历史记忆时，只注入摘要
-- detail：需要详细参考时，注入摘要 + 概览
-- full：需要完整信息时，注入摘要 + 概览 + 原文
+
+off：纯闲聊、情绪表达，不需要注入历史记忆
+
+summary：需要参考历史记忆时，只注入摘要
+
+detail：需要详细参考时，注入摘要 + 概览
+
+full：需要完整信息时，注入摘要 + 概览 + 原文
 
 【要求】
-- 只输出 JSON，不要其他内容
-- 不要生成回复内容
-- 不要使用 markdown 代码块
+
+只输出 JSON，不要其他内容
+
+不要生成回复内容
+
+不要使用 markdown 代码块
 """;
     }
 
@@ -130,11 +169,13 @@ public static class PromptTemplates
 你是王德发的记忆体分析模块。
 
 【你的任务】
-基于用户输入和老王回复，生成摘要和概览。标签部分直接沿用 A线 输出的特征标签，不需要重新生成。
+基于用户输入和Agent回复，生成摘要和概览。标签部分直接沿用 A线 输出的特征标签，不需要重新生成。
+同时分别提取用户偏好和本轮反馈——两者是独立字段，不要混淆。
 
 【输入】
-用户对你说：{userInput}
-老王回复：{agentResponse}
+用户本轮对你说：{userInput}
+Agent上一轮回复：{previousAgentResponse}
+Agent本轮回复：{agentResponse}
 A线特征标签：{structuredTags}
 缺失标签列表（需填充语义定义）：{missingTags}
 
@@ -153,14 +194,43 @@ A线特征标签：{structuredTags}
     "待确认标签名2": "activate"
 }
 
-【反馈判断】
-除了摘要分析，你还需要判断用户对上一轮回复是否满意。
+【偏好提取规则】
+从对话中提取用户明确表达的稳定偏好，只提取可复用的长期偏好，不提取临时性需求或过度概括。
 
-判断依据：比较当前用户输入和上一轮对话内容。
-- 如果用户明确肯定（"对""没错""就是这个""是的""好""可以"）→ confirmed
-- 如果用户明确否定（"不对""不是""你理解错了""错了""不对"）→ rejected
-- 如果用户继续同一话题追问 → confirmed
-- 如果用户切换话题或无法判断 → ignored
+偏好类型包括但不限于：
+- 风格偏好：简洁、详细、结构化的、有示例的
+- 习惯偏好：先看结论、先看过程、先看数据
+- 工具/语言偏好：喜欢用什么工具、什么语言
+- 内容偏好：喜欢什么方向的内容、不喜欢什么方向
+
+提取规则：
+- 每条偏好必须包含 key、value、confidence（0.5-0.95）、scene（至少1个场景标签）
+- 如果用户明确表达 → confidence 0.9
+- 如果从回复认可中推断 → confidence 0.7
+- 如果不确定是否稳定 → confidence 0.5，或不提取
+- 不要提取临时性需求（如"这次给我详细一点"）
+- 不要提取过度概括（如"用户喜欢工作"）
+- 如果本轮对话没有可提取的偏好，输出空数组 []
+
+场景（scene）判断规则，从以下选择：
+- 工作：工作任务、项目、代码、文档、规划
+- 生活：日常事务、家庭、个人安排
+- 学习：学习、研究、阅读、知识获取
+- 娱乐：游戏、影视、音乐、休闲
+- 编程：代码、调试、架构、技术选型
+
+【反馈判断规则】
+反馈是对"Agent上一轮回复"的一次性评价，与长期偏好不同。
+判断依据：比较"用户本轮输入"对"Agent上一轮回复"的反应。
+
+- 用户明确肯定（"对""没错""就是这个""是的""好""可以"）→ status: "confirmed"
+- 用户明确否定（"不对""不是""你理解错了""错了""不对"）→ status: "rejected"
+- 用户继续追问/表示没得到想要的（"然后呢""具体点""没懂""再解释"）→ status: "partial"
+- 用户切换话题或无法判断 → status: "ignored"
+
+注意：
+- confirmed 只给明确肯定；追问是 partial，不是 confirmed。
+- feedback 是单次评价，不是长期偏好。status 为 confirmed 时，reason 应说明认可了回复的哪个具体方面（如"认可了简洁风格"），供后续特征统计使用。
 
 【输出格式】
 只输出以下 JSON 格式，不要其他内容：
@@ -176,17 +246,26 @@ A线特征标签：{structuredTags}
     "待确认标签名1": "merge_to: 已有标签名",
     "待确认标签名2": "activate"
   },
+  "preferences": [
+    {
+      "key": "偏好名称",
+      "value": "偏好值",
+      "confidence": 0.85,
+      "scene": ["工作", "编程"]
+    }
+  ],
   "feedback": {
     "status": "confirmed",
-    "reason": "判断理由（一句话）"
+    "reason": "认可了回复的哪个具体方面"
   }
 }
 
 【要求】
 - 为缺失标签列表中的每个标签填充语义定义（definition）
 - feedback 必须包含 status 和 reason
-- 如果无法判断，status 填 "ignored"
+- 如果无法判断反馈，status 填 "ignored"，reason 填 ""
 - pending_tags_decision 仅在存在待确认标签时输出
+- preferences 如果没有可提取的偏好，输出 []
 - 只输出 JSON，不要其他内容
 """;
     }

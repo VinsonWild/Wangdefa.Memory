@@ -85,4 +85,5 @@ public class EventResult
     public string? ErrorMessage { get; set; }
     public double? DurationMs { get; set; }
     public string? UserRating { get; set; }           // useful / useless
+    public Dictionary<string, object>? Extra { get; set; }
 }

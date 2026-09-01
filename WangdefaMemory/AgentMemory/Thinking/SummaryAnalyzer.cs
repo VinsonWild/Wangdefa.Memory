@@ -30,9 +30,10 @@ public class SummaryAnalyzer
     public async Task<SummaryAnalysisResult> AnalyzeAsync(
         string userInput,
         string agentResponse,
+        string previousAgentResponse,
         StructuredTag[]? structuredTags = null,
         StructuredTag[]? missingTags = null,
-        List<TagEntry>? pendingTags = null)  // ★ 新增参数
+        List<TagEntry>? pendingTags = null)  
     {
         Console.WriteLine("[SummaryAnalyzer] 执行 C 线摘要分析...");
 
@@ -53,9 +54,10 @@ public class SummaryAnalyzer
         var prompt = _instruction
             .Replace("{userInput}", userInput)
             .Replace("{agentResponse}", agentResponse)
+            .Replace("{previousAgentResponse}", previousAgentResponse)
             .Replace("{structuredTags}", structuredTagsText)
             .Replace("{missingTags}", missingTagsText)
-            .Replace("{pendingTags}", pendingTagsText);  // ★ 新增
+            .Replace("{pendingTags}", pendingTagsText);  
 
         var reply = await _chatService.ChatAsync(prompt);
 
@@ -118,11 +120,36 @@ public class SummaryAnalyzer
                     continue;
                 }
 
+                // 解析 scene（支持字符串或数组）
+                string scene = "";
+                if (item.TryGetProperty("scene", out var sceneElem))
+                {
+                    if (sceneElem.ValueKind == JsonValueKind.String)
+                    {
+                        scene = sceneElem.GetString() ?? "";
+                    }
+                    else if (sceneElem.ValueKind == JsonValueKind.Array)
+                    {
+                        var scenes = new List<string>();
+                        foreach (var elem in sceneElem.EnumerateArray())
+                        {
+                            if (elem.ValueKind == JsonValueKind.String)
+                            {
+                                var s = elem.GetString();
+                                if (!string.IsNullOrEmpty(s))
+                                    scenes.Add(s);
+                            }
+                        }
+                        scene = string.Join(",", scenes);
+                    }
+                }
+
                 prefList.Add(new PreferenceEntry
                 {
                     Key = key,
                     Value = value,
-                    Confidence = confidence
+                    Confidence = confidence,
+                    Scene = scene
                 });
             }
 
@@ -163,16 +190,12 @@ public class SummaryAnalyzer
             var status = feedback.TryGetProperty("status", out var s) ? s.GetString() ?? "ignored" : "ignored";
             var reason = feedback.TryGetProperty("reason", out var r) ? r.GetString() ?? "" : "";
 
-            if (status == "confirmed" || status == "rejected")
+            result.Feedback = new FeedbackEntry
             {
-                result.Preferences.Add(new PreferenceEntry
-                {
-                    Key = "反馈",
-                    Value = status,
-                    Confidence = status == "confirmed" ? 0.8 : 0.2
-                });
-                Console.WriteLine($"[SummaryAnalyzer] 反馈判断: {status} - {reason}");
-            }
+                Status = status,
+                Reason = reason
+            };
+            Console.WriteLine($"[SummaryAnalyzer] 反馈: {status} - {reason}");
         }
 
         // ===== ★ 解析标签合并决策 =====

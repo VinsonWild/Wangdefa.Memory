@@ -1,4 +1,4 @@
-// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+ï»¿// Copyright æ¼ 2025-2026 VinsonWild (wangdefa)
 // Licensed under the Apache License, Version 2.0.
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 // See the LICENSE file in the repository root for full text.
@@ -12,7 +12,7 @@ using Wangdefa.AgentMemory.Signal;
 namespace Wangdefa.AgentMemory.Cognitive;
 
 /// <summary>
-/// ÈÏÖª²ã¶ÁÈ¡Æ÷ - Í¨¹ıÌØÕ÷ÍÆÑİ¼ìË÷ÈÏÖª¿¨Æ¬
+/// è®¤çŸ¥å±‚è¯»å–å™¨ - é€šè¿‡ç‰¹å¾æ¨æ¼”æ£€ç´¢è®¤çŸ¥å¡ç‰‡
 /// </summary>
 public class CognitiveReader
 {
@@ -21,7 +21,7 @@ public class CognitiveReader
     private readonly IThinkingStore _thinkingStore;
     private readonly IKnowledgeStore _knowledgeStore;
 
-    // Ê±¼äË¥¼õÏµÊı£¬¿Éµ÷
+    // æ—¶é—´è¡°å‡ç³»æ•°ï¼Œå¯è°ƒ
     private const double DECAY_RATE = 0.05;
 
     public CognitiveReader(
@@ -87,17 +87,17 @@ public class CognitiveReader
                     searchCodes.Add(entry.Code);
                 }
             }
-            Console.WriteLine($"?? ÌØÕ÷ÍÆÑİÊ¹ÓÃÓïÒå±êÇ©: {string.Join(", ", semanticTags)} ¡ú codes: {string.Join(", ", searchCodes)}");
+            Console.WriteLine($"?? ç‰¹å¾æ¨æ¼”ä½¿ç”¨è¯­ä¹‰æ ‡ç­¾: {string.Join(", ", semanticTags)} â†’ codes: {string.Join(", ", searchCodes)}");
         }
         else
         {
             searchCodes = _featureEngine.ExtractCodes(input);
-            Console.WriteLine($"?? ÌØÕ÷ÍÆÑİÊ¹ÓÃÔ­Ê¼ÊäÈë: {input} ¡ú codes: {string.Join(", ", searchCodes)}");
+            Console.WriteLine($"?? ç‰¹å¾æ¨æ¼”ä½¿ç”¨åŸå§‹è¾“å…¥: {input} â†’ codes: {string.Join(", ", searchCodes)}");
         }
 
         if (searchCodes.Count == 0)
         {
-            Console.WriteLine("?? Î´ÌáÈ¡µ½ÈÎºÎ¼ìË÷ code");
+            Console.WriteLine("?? æœªæå–åˆ°ä»»ä½•æ£€ç´¢ code");
             return new List<CognitiveMatchResultModel>();
         }
 
@@ -111,7 +111,7 @@ public class CognitiveReader
     {
         if (codes == null || codes.Count == 0)
         {
-            Console.WriteLine("?? code ÁĞ±íÎª¿Õ£¬ÎŞ·¨¼ìË÷");
+            Console.WriteLine("?? code åˆ—è¡¨ä¸ºç©ºï¼Œæ— æ³•æ£€ç´¢");
             return new List<CognitiveMatchResultModel>();
         }
 
@@ -123,11 +123,11 @@ public class CognitiveReader
 
         if (featureResults == null || featureResults.Count == 0)
         {
-            Console.WriteLine($"?? ÌØÕ÷ÍÆÑİÎ´ÃüÖĞÈÏÖª¿¨Æ¬ (codes: {string.Join(", ", codes)})");
+            Console.WriteLine($"?? ç‰¹å¾æ¨æ¼”æœªå‘½ä¸­è®¤çŸ¥å¡ç‰‡ (codes: {string.Join(", ", codes)})");
             return new List<CognitiveMatchResultModel>();
         }
 
-        // ¡ï ÅúÁ¿²¢ĞĞ¼ÓÔØ¿¨Æ¬£¬¼õÉÙ IO µÈ´ı
+        // â˜… æ‰¹é‡å¹¶è¡ŒåŠ è½½å¡ç‰‡ï¼Œå‡å°‘ IO ç­‰å¾…
         var loadTasks = featureResults.Select(fr => LoadCognitiveRecord(fr.CardId));
         var loadedRecords = await Task.WhenAll(loadTasks);
 
@@ -140,7 +140,7 @@ public class CognitiveReader
             var record = loadedRecords[i];
             if (record == null) continue;
 
-            // ¡ï ¹ıÂË£ºÖ»·µ»ØÒÑ²¹È«µÄ¿¨Æ¬£¬Ìø¹ı pending ¿Õ¿¨
+            // â˜… è¿‡æ»¤ï¼šåªè¿”å›å·²è¡¥å…¨çš„å¡ç‰‡ï¼Œè·³è¿‡ pending ç©ºå¡
             if (record.Status != "completed") continue;
 
             PerceptionModel? perception = null;
@@ -166,6 +166,32 @@ public class CognitiveReader
 
             var finalConfidence = fr.Strength * timeDecay;
 
+            // â˜… åé¦ˆçŠ¶æ€è¿‡æ»¤ + æƒé‡ä¿®æ­£
+            if (!string.IsNullOrEmpty(record.FeedbackStatus))
+            {
+                switch (record.FeedbackStatus)
+                {
+                    case "rejected":
+                        Console.WriteLine($"ğŸ§  å¡ç‰‡ {record.Id} å› åé¦ˆ rejected è¢«ä¸¢å¼ƒ");
+                        continue;
+                    case "confirmed":
+                        Console.WriteLine($"ğŸ§  å¡ç‰‡ {record.Id} åé¦ˆ confirmedï¼ŒåŠ åˆ†ä¼˜å…ˆ");
+                        finalConfidence *= 1.15;
+                        break;
+                    case "ignored":
+                        Console.WriteLine($"ğŸ§  å¡ç‰‡ {record.Id} åé¦ˆ ignoredï¼Œä¸­æ€§å¤„ç†ï¼ˆä¸å‡ä¸é™ï¼‰");
+                        // ä¸­æ€§ï¼Œä¸åšæƒé‡ä¿®æ­£
+                        break;
+                    case "partial":
+                        // ä¸­æ€§ï¼Œä¸åšè°ƒæ•´
+                        break;
+                    default:
+                        // æœªçŸ¥çŠ¶æ€ï¼Œä¸­æ€§å¤„ç†
+                        break;
+                }
+            }
+            // ç©ºçŠ¶æ€ï¼šä¸­æ€§ï¼Œä¸åšè°ƒæ•´
+
             results.Add(new CognitiveMatchResultModel
             {
                 Summary = record.Insight?.Summary ?? "",
@@ -190,7 +216,7 @@ public class CognitiveReader
             .Take(topN)
             .ToList();
 
-        Console.WriteLine($"?? ÈÏÖª²ãÃüÖĞ {results.Count} Ìõ¼ÇÂ¼£¨½ö completed£¬Ê±¼äË¥¼õÒÑÓ¦ÓÃ£©");
+        Console.WriteLine($"?? è®¤çŸ¥å±‚å‘½ä¸­ {results.Count} æ¡è®°å½•ï¼ˆä»… completedï¼Œæ—¶é—´è¡°å‡å·²åº”ç”¨ï¼‰");
         return results;
     }
 

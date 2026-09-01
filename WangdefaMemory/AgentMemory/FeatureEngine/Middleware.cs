@@ -258,6 +258,12 @@ public class Middleware
         var intentDesc = $"用户意图：{intentResult.Intent}，场景：{intentResult.Perception.Scene}，情绪：{intentResult.Perception.Emotion}";
         parts.Add(intentDesc);
         parts.Add($"上下文摘要：{intentResult.ContextSummary}");
+
+        var styleConstraint = GetStyleConstraint(intentResult.ResponseStyle);
+        if (!string.IsNullOrEmpty(styleConstraint))
+        {
+            parts.Add(styleConstraint);
+        }
         parts.Add("");
 
         if (cognitiveResult != null && !string.IsNullOrEmpty(cognitiveResult.Summary))
@@ -271,7 +277,15 @@ public class Middleware
 
             if (cognitiveResult.Preferences != null && cognitiveResult.Preferences.Any())
             {
-                parts.Add($"偏好：{string.Join(", ", cognitiveResult.Preferences.Select(p => $"{p.Key}={p.Value}({p.Confidence:F0%})"))}");
+                var currentScene = intentResult.Perception.Scene;
+                var filtered = cognitiveResult.Preferences
+                    .Where(p => p.Key != "反馈")
+                    .Where(p => string.IsNullOrEmpty(p.Scene) || p.Scene.Contains(currentScene))
+                    .ToList();
+                if (filtered.Any())
+                {
+                    parts.Add($"偏好：{string.Join(", ", filtered.Select(p => $"{p.Key}={p.Value}({p.Confidence:F0%})"))}");
+                }
             }
 
             if (intentResult.MemoryInjectionMode == "detail" || intentResult.MemoryInjectionMode == "full")
@@ -291,5 +305,20 @@ public class Middleware
         var enrichedInput = string.Join("\n", parts);
 
         return (enrichedInput, cognitiveResult, missingTags.ToArray(), frameId);
+    }
+
+    /// <summary>
+    /// 根据回复风格生成字数约束指令
+    /// </summary>
+    private string GetStyleConstraint(string responseStyle)
+    {
+        return responseStyle switch
+        {
+            "concise" => "=== 回复约束 ===\n回复控制在 100 字内，直接回应用户，不展开背景，不追问。",
+            "balanced" => "=== 回复约束 ===\n回复控制在 300 字内，可适度展开关键信息，有必要可追问一次。",
+            "detailed" => "=== 回复约束 ===\n回复不限制，充分展开分析，可多轮追问，可提供备选方案。",
+            "executive" => "=== 回复约束 ===\n回复不限制，必须给出明确结论或建议，结构清晰，不加无关信息。",
+            _ => ""
+        };
     }
 }
