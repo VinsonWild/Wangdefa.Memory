@@ -9,7 +9,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
-[![NuGet](https://img.shields.io/badge/NuGet-v1.1.6-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
+[![NuGet](https://img.shields.io/badge/NuGet-v1.1.7-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
 [![DSH Plugin](https://img.shields.io/badge/DSH-Plugin-blue.svg)](https://github.com/topics/dsh-plugin)
 
 ---
