@@ -1,7 +1,7 @@
 {
   "name": "@wangdefa/dsh-wangdefa-memory-hook",
   "description": "Auto-invokes a memory MCP service on the agent loop: recall on every prompt, persist on turn end",
-  "version": "1.1.5",
+  "version": "1.1.8",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",

@@ -9,7 +9,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
-[![NuGet](https://img.shields.io/badge/NuGet-v1.1.7-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
+[![NuGet](https://img.shields.io/badge/NuGet-v1.1.8-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
 [![DSH Plugin](https://img.shields.io/badge/DSH-Plugin-blue.svg)](https://github.com/topics/dsh-plugin)
 
 ---
@@ -42,7 +42,7 @@ Wangdefa.Memory 选择了无向量记忆体方向（不排除未来有弱向量�
 
 现在的记忆体越来越多，不管插件还是框架，卷的方向算高度一致：召回精确，精准识别。
 
-怎么召得更准，怎么认得更精。我毫不怀疑这方面技术未来会越来越完善。
+怎么召得更准，怎么认得更精？毫无疑问这方面技术未来会越来越完善。
 
 然而，**召回的准确，是否等同于召回的"有用"？**
 
@@ -142,11 +142,11 @@ LLM 的语言理解能力已经到一定水平了。准确理解人类语言，�
 
 目前以ABC三条线路进行运行；
 
-A线：意图感知 + 语义解析
+A线：意图感知 + 语义解析（只读）
 
 1. 先判断输入文体。（人类语言离不开记叙、议论、说明、意识流、散文等主要文体），文体判断不是装饰，它决定意图推测的方向。
-2. LLM 做意图分析，输出感知信息（场景/情绪/状态/语境）、路由决策（浅/中/深）、结构化标签（必须带语义定义，因为一词多意是常态）。
-3. 标签和语义交给特征推演引擎。存在且匹配的直接取用，不存在的创建，标记"待审"，C线审。
+2. LLM 做意图分析，输出感知信息（场景/场景细分/情绪/状态/语境）、路由决策（浅/中/深）、记忆特征推测标签。
+3. A线推测的标签用于检索线索，命中已有标签则取用，未命中则留给 C线统一处理（A线不写标签池）。
 4. 引擎做多轮拓展匹配，找出潜在关联的认知卡片，按置信度推给 B 线。
 5. B 线开始前，A 线先建一张认知卡片框架占位。B 线完成后，C 线补全。
 
@@ -159,9 +159,9 @@ C线：学习与沉淀（异步，不阻塞用户）
 
 1. 记录完整事件
 2. 写概览与概要
-3. 补全卡片标签、摘要、指针
-4. 检查新增标签准确度，同释义合并
-5. 修正偏好
+3. 补全卡片标签、摘要、指针、场景定稿
+4. 检查新增标签准确度，同释义合并，泛用词拦截
+5. 修正偏好与反馈
 
 ---
 
@@ -171,15 +171,17 @@ C线：学习与沉淀（异步，不阻塞用户）
 |------|------|
 | **五层记忆架构** | 认知层 / 特征推演 / 思考层 / 阅历层 / 传递层 |
 | **特征推演引擎** | 标签池 + 密码簿 + 特征统计 + 时间衰减，让记忆通过认知驱动 |
+| **场景系统** | 场景大类+细分独立存储，可持续积累；检索时同场景记忆优先 |
 | **两阶段写入** | 先写框架（pending），后补全（completed），支持状态标记 |
 | **自我迭代** | 权重衰减 + 定期清理 + 标签演化，高频记忆自然沉淀，低频记忆自动遗忘 |
-| **偏好闭环** | 用户反馈自动转化为偏好，持续学习 |
+| **偏好与反馈闭环** | 偏好和反馈独立提取、独立存储，反馈感知检索 |
 | **意图驱动检索** | 根据意图决定记忆注入深度（shallow / medium / deep） |
-| **标签演化** | 合并 / 分裂 / 弃用，标签自动优化 |
+| **标签演化** | 合并 / 分裂 / 弃用 / 重定向，标签自动优化 |
+| **标签质量约束** | 禁止泛用词，要求标签可定位，数量收紧到 2-4 个 |
+| **统一存储** | 所有写入收敛到统一入口，原子写入，断电不损坏 |
 | **本地优先** | 所有数据存储在本地 SQLite + JSON |
 | **轻量依赖** | 仅依赖 SQLite + System.Text.Json |
 | **MCP 适配** | 支持通过 MCP 协议接入 DSH，提供 ProcessMessage / SaveMemory 工具 |
-| **A线近期记忆参考** | 意图分析时自动注入最近10张认知卡摘要和标签，提升标签提取准确性 |
 
 ---
 
@@ -274,7 +276,6 @@ using Wangdefa.AgentMemory;
 using Wangdefa.AgentMemory.Models;
 using Wangdefa.Contracts;
 
-// 如果不需要内置 A线，可传入 null 或 Mock 实现
 var chatService = new MyChatService();
 var basePath = Path.Combine(Directory.GetCurrentDirectory(), "memory");
 
@@ -285,18 +286,19 @@ var memory = ServiceRegistry.GetWangdefaMemory();
 ### 2. 写入记忆（两阶段）
 
 ```csharp
-// 阶段一：写框架（自动提取标签）
+// 阶段一：写框架
 var frameId = await memory.WriteMemoryFrame(
     topicId: "demo",
     userInput: "我喜欢用简洁的风格写代码",
-    perception: new PerceptionModel { Scene = "工作" },
-    tags: new List<string> { "代码风格", "简洁" },  // 可传空，由 A线 自动提取
+    perception: new PerceptionModel { Scene = "工作", SceneSub = "代码评审" },
+    tags: new List<string> { "代码风格", "简洁" },
     route: "shallow"
 );
 
 // 阶段二：补全
 await memory.CompleteMemory(
     cardId: frameId,
+    userInput: "我喜欢用简洁的风格写代码",
     agentResponse: "好的，已记录你的偏好",
     status: "completed"
 );
@@ -305,10 +307,9 @@ await memory.CompleteMemory(
 ### 3. 查询记忆
 
 ```csharp
-// 不传 semanticTags 时，记忆体自动调用 A线 提取标签
 var result = await memory.CognitiveMatch(
     input: "写代码时要注意什么",
-    semanticTags: null  // 自动提取
+    semanticTags: null
 );
 
 if (result != null)
@@ -332,17 +333,19 @@ if (result != null)
 | **特征统计（FeatureStats）** | 每张卡片 → 它有哪些标签 | "这张卡片有哪些标签？" |
 
 推演流程：
-用户输入 → 提取标签 → 查标签池拿到 code → 查密码簿拿到卡片ID → 通过特征池确认卡片有哪些标签 → 多轮拓展推演关联 → 计算匹配强度
+用户输入 → 推测特征标签 → 查标签池拿到 code → 查密码簿拿到卡片ID → 通过特征池确认卡片有哪些标签 → 多轮拓展推演关联 → 计算匹配强度
 
 ### 匹配流程
 
-1. **精准匹配**：用 `tag + dimension` 查标签池，直接命中 `code`
-2. **近义匹配**：用 `synonyms` 扩展匹配范围（作为兜底）
-3. **密码簿查询**：用 `code` 查密码簿，拿到卡片ID列表
-4. **特征池匹配**：用卡片ID查特征池，确认卡片实际包含哪些标签，计算匹配强度
+1. **标签匹配**：用标签名查标签池，命中则拿 code；已合并的标签自动重定向到目标标签
+2. **近义匹配**：用近义词扩展匹配范围
+3. **密码簿查询**：用 code 查密码簿，拿到卡片ID列表
+4. **特征池匹配**：确认卡片实际包含哪些标签，计算匹配强度
 5. **时间衰减**：匹配强度 × `exp(-0.05 × 天数)`，新记忆优先
-6. **状态过滤**：只返回 `completed` 状态的卡片，过滤 `pending` 空卡
-7. **排序返回**：按最终权重降序返回 TopN
+6. **反馈修正**：confirmed 加分，rejected 丢弃，ignored/partial 中性
+7. **场景加权**：大类命中 +0.1，细分命中再 +0.1
+8. **状态过滤**：只返回 `completed` 状态的卡片
+9. **排序返回**：按最终权重降序返回 TopN
 
 ---
 
@@ -355,9 +358,6 @@ if (result != null)
 │                                                                                     │
 │  ┌─────────────────────────────────────────────────────────────────────────────┐   │
 │  │                         对外接口（IWangdefaMemory）                         │   │
-│  │                                                                             │   │
-│  │   SinkAsync()          CognitiveMatch()          AddTagWithSynonyms()       │   │
-│  │   WriteMemoryFrame()   CompleteMemory()                                     │   │
 │  └─────────────────────────────────────────────────────────────────────────────┘   │
 │                                    │                                               │
 │                                    ▼                                               │
@@ -367,22 +367,19 @@ if (result != null)
 │  │   ┌───────────────┐    ┌───────────────┐    ┌───────────────┐              │   │
 │  │   │   标签池       │    │   密码簿       │    │   特征统计     │              │   │
 │  │   │ TagDictionary │    │ PasswordBook  │    │ FeatureStats  │              │   │
-│  │   │               │    │               │    │               │              │   │
-│  │   │ tag → code    │    │ code → 卡片ID │    │ 命中次数      │              │   │
-│  │   │ synonyms      │    │               │    │ 最后命中时间   │              │   │
-│  │   │ definition    │    │               │    │               │              │   │
 │  │   └───────────────┘    └───────────────┘    └───────────────┘              │   │
 │  │                                                                             │   │
-│  │   匹配流程：                                                                 │   │
-│  │   标签输入 → 精准匹配 → 近义匹配 → 时间衰减排序 → 状态过滤 → 返回卡片ID     │   │
-│  │                                                                             │   │
+│  │   ┌───────────────────────────────────────────────────────────────────────┐ │   │
+│  │   │                        场景库（SceneStore）                            │ │   │
+│  │   │              场景大类 + 细分，独立存储，可持续积累                       │ │   │
+│  │   └───────────────────────────────────────────────────────────────────────┘ │   │
 │  └─────────────────────────────────────────────────────────────────────────────┘   │
 │                                    │                                               │
 │                                    ▼                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────────┐   │
 │  │                         认知层（CognitiveReader）                            │   │
 │  │                                                                             │   │
-│  │   特征推演返回的卡片ID → 加载认知卡片 → 返回 CognitiveMatchResult           │   │
+│  │   特征推演返回的卡片ID → 加载认知卡片 → 叠加反馈/场景权重 → 返回结果          │   │
 │  │                                                                             │   │
 │  └─────────────────────────────────────────────────────────────────────────────┘   │
 │                                    │                                               │
@@ -410,7 +407,7 @@ if (result != null)
 | **L1** | 认知层 | `CognitiveReader` | 负责语义提取后快速读取认知卡片，通过特征推演检索记忆 |
 | **L2** | 思考层 | `ThinkingStore` | 负责考虑内容深度和学习存储，进行分流索引，并记录「去哪找」 |
 | **L3** | 阅历层 | `EventStore`、`KnowledgeStore`、`MemorySinkService` | 存储每一次交互的事件、知识的完整内容、概览和概要，并进行认知卡片的写入 |
-| **L4** | 特征推演 | `FeatureEngine`（标签池 + 密码簿 + 特征统计） | 标签匹配、近义扩展、时间衰减排序 |
+| **L4** | 特征推演 | `FeatureEngine`（标签池 + 密码簿 + 特征统计 + 场景库） | 标签匹配、近义扩展、场景加权、时间衰减排序 |
 | **L5** | 传递层 | 内置于 `Middleware` | 根据 `route` 决定记忆注入深度（shallow / medium / deep） |
 
 ---
@@ -422,6 +419,7 @@ memory/
 ├── chat_history.db                         ← 聊天历史
 ├── wangdefa_memory.db                      ← SQLite 备份
 ├── feature_pool.db                         ← 标签池 + 密码簿 + 特征统计
+├── scene_store.db                          ← 场景库（大类 + 细分）
 ├── cognitive/
 │   └── records/
 │       └── 认知_xxx.json                   ← L1 认知层（含 Status 状态标记）
@@ -447,8 +445,8 @@ memory/
 
 ```
 阶段一：写框架（WriteMemoryFrame）
-用户输入 → A线 提取标签 → 中间件 → 写框架（Status = pending）
-    ├── 创建认知卡片（标签 + 感知信息）
+用户输入 → A线 推测标签 → 中间件 → 写框架（Status = pending）
+    ├── 创建认知卡片（标签 + 感知信息 + 场景候选）
     ├── 写入密码簿（code → 卡片ID）
     └── 返回 frameId
 
@@ -456,15 +454,18 @@ memory/
 Agent 生成回复 → 调用 SaveMemory(frameId, agentResponse)
     ├── 填充 Summary
     ├── 更新 Status → completed / interrupted / failed
-    ├── 更新特征统计（提高检索权重）
+    ├── 场景定稿（C线为主、A线兜底）
+    ├── 标签质量审核（泛用词拦截）
+    ├── 更新特征统计
     └── 记忆可被检索
 ```
 
 ### 查询流程
 
 ```
-用户输入 → A线 提取标签（参考最近 10 张认知卡）→ 中间件
-    ├── 特征推演检索（标签匹配 + 时间衰减）
+用户输入 → A线 推测标签 → 中间件
+    ├── 标签匹配（含已合并标签重定向）
+    ├── 特征推演检索（标签匹配 + 时间衰减 + 反馈修正 + 场景加权）
     ├── 状态过滤（只返回 completed 卡片）
     └── 返回 CognitiveMatchResult
 ```
@@ -478,7 +479,7 @@ Agent 生成回复 → 调用 SaveMemory(frameId, agentResponse)
 | 方法 | 说明 |
 |------|------|
 | `CognitiveMatch()` | 根据语义标签匹配记忆（`semanticTags` 可空，空则自动提取） |
-| `CognitiveMatchByCodes()` | 根据标签 code 匹配记忆 |
+| `CognitiveMatchByCodes()` | 根据标签 code 匹配记忆（支持场景参数） |
 | `CognitiveMatchTopN()` | 匹配多条记忆，返回 TopN |
 | `WriteMemoryFrame()` | 写框架（状态 pending），返回 frameId |
 | `CompleteMemory()` | 补全卡片，更新状态和内容 |
@@ -517,7 +518,3 @@ Agent 生成回复 → 调用 SaveMemory(frameId, agentResponse)
 Apache License 2.0 © 2026 Wangdefa Memory Contributors
 
 See [LICENSE](LICENSE) for details.
-```
-
----
-

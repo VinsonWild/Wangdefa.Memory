@@ -32,6 +32,7 @@ public class CognitiveMatchResultModel
     public string? FullTextPointer { get; set; }
     public string? FullTextType { get; set; }
     public string? SourcePath { get; set; }
+    public string? EventId { get; set; }
 
     public string ToContext()
     {

@@ -1,5 +1,53 @@
 # Changelog / 更新记录
 
+
+## v1.1.8 (2026-09-11)
+
+### English
+- **Preference and feedback separation:** Preferences and feedback are now extracted and stored independently.
+- **Feedback-aware retrieval:** Memories the user confirmed rank higher, rejected ones are discarded, and neutral ones stay neutral.
+- **Scene-filtered preferences:** Only preferences matching the current scene are injected, so preferences from different scenes don't interfere with each other.
+- **Response style constraints:** A-Line judges whether the reply should be concise, balanced, detailed, or executive, and injects the corresponding length constraint.
+- **Previous-turn context optimization:** Feedback judgment reads the full overview of the previous turn for more complete context.
+- **Unified storage with atomic writes:** All writes go through a single entry point, writing to a temp file first and then replacing, so power loss won't corrupt data.
+- **Idempotent tag pool writes:** Duplicate writes to the same tag automatically reuse the existing entry, no more database conflicts.
+- **Tag pool responsibility split:** The tag pool is split into independent modules — cache, storage, evolution, and similarity each handle their own job.
+- **A-Line read-only:** A-Line only reads, never writes. New tags are left to C-Line, so the tag pool stays clean.
+- **Independent scene store:** Scene categories and subcategories are stored independently and accumulate over time.
+- **Two-level scene support:** Supports two-level scenes like "Work / Code Review", usable in both cards and retrieval.
+- **C-Line finalization with A-Line fallback:** C-Line leads, A-Line backs up. Values are resolved per field, so scene information is never lost.
+- **Scene weight in retrieval:** Memories from the same scene rank higher, while cross-scene but content-relevant memories are not dropped.
+- **Event retrieval fix:** Deep mode now correctly reads the full event.
+- **Medium read fix:** Medium mode now uses the correct overview pointer.
+- **Tag quality constraints:** The prompt forbids generic words, requires tags to be locatable, and limits the count to 2–4.
+- **A-Line tag task shift:** A-Line moved from "extracting keywords" to "inferring possibly related historical memories", outputting retrieval clues.
+- **Generic tag interception:** Generic words no longer enter the tag pool and pollute retrieval.
+- **Tag merge redirection:** When a merged old tag is matched, it automatically redirects to the merged new tag.
+- **Tag merge semantic inheritance:** When merging, the old tag's synonyms, definitions, relations, and statistics are carried over to the new tag, so no semantics are lost.
+
+### 中文
+- **偏好与反馈分离：** 偏好和反馈独立提取、独立存储，各管各的。
+- **反馈感知检索：** 用户认可过的记忆优先出现，否定过的直接丢弃，没表态的保持中性。
+- **按场景过滤偏好：** 只注入匹配当前场景的偏好，不同场景的偏好不会互相干扰。
+- **回复风格约束：** A线判断本轮该用简洁、适中、详细还是决策风格，并注入对应的字数约束。
+- **上一轮上下文优化：** 反馈判断读取上一轮的概览原文，判断依据更完整。
+- **统一存储与原子写入：** 所有写入收敛到统一入口，先写临时文件再替换，断电也不会损坏。
+- **标签池写入幂等：** 重复写入同一标签会自动复用，不再触发数据库冲突。
+- **标签池职责拆分：** 标签池拆成独立模块，缓存、存储、演化、相似度计算各管各的。
+- **A线只读不写：** A线只读不写，新标签留给C线统一处理，不再污染标签池。
+- **场景库独立建表：** 场景大类+细分独立存储，可持续积累。
+- **场景细分支持：** 支持“工作/代码评审”这样的两级场景，卡片和检索都能用上。
+- **C线场景定稿 + A线兜底：** C线为主、A线兜底，按字段分别取值，场景信息不会丢。
+- **检索场景权重：** 同场景的记忆优先出现，跨场景但内容相关的记忆不丢。
+- **事件读取链路修复：** deep 模式能正确读到完整事件。
+- **medium 读取修复：** medium 模式改用正确的概览指针。
+- **标签质量约束：** Prompt 禁止泛用词，要求标签可定位，数量收紧到 2-4 个。
+- **A线标签任务转型：** A线从“提取关键词”改为“推测可能关联的历史记忆”，输出检索线索。
+- **泛用标签拦截：** 泛用词不会进入标签池污染检索。
+- **标签合并重定向：** 匹配到已合并的老标签后，自动重定向到合并后的新标签。
+- **标签合并语义继承：** 合并时把老标签的近义词、释义、关联、统计一起搬到新标签，语义不丢。
+
+
 ##  v1.1.7 (2026-09-01)
 
 ### English

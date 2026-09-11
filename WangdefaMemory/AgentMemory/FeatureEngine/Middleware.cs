@@ -6,16 +6,21 @@ using System.Text.Json;
 using Wangdefa.AgentMemory.Cognitive;
 using Wangdefa.AgentMemory.Interfaces;
 using Wangdefa.AgentMemory.Models;
+using Wangdefa.AgentMemory.FeatureEngine;
 
 namespace Wangdefa.AgentMemory.FeatureEngine;
 
 public class Middleware
 {
     private readonly IWangdefaMemory _memory;
+    private readonly SceneStore _sceneStore;
+    private readonly IThinkingStore _thinkingStore;
 
-    public Middleware(IWangdefaMemory memory)
+    public Middleware(IWangdefaMemory memory, SceneStore sceneStore, IThinkingStore thinkingStore)
     {
         _memory = memory;
+        _sceneStore = sceneStore;
+        _thinkingStore = thinkingStore;
     }
 
     public async Task<(string enrichedInput, CognitiveMatchResultModel? cognitiveResult, StructuredTag[] missingTags, string? frameId)> ProcessAsync(
@@ -29,7 +34,7 @@ public class Middleware
         var processedTags = new HashSet<string>();
 
         // ============================================================
-        // 1. A线 标签匹配 + 近义匹配 + 增量写入
+        // 1. A线 标签匹配 + 近义匹配（只读，不写入）
         // ============================================================
         foreach (var st in structuredTags)
         {
@@ -113,31 +118,45 @@ public class Middleware
                 continue;
             }
 
-            // 1.3 未命中 → 新增标签（status = "unexamined"）
+            // 1.3 未命中 → 只读，不新增（留给 C 线处理）
             if (!matched)
             {
-                var definitionStr = st.Definitions != null && st.Definitions.Length > 0
-                    ? string.Join(", ", st.Definitions)
-                    : "";
-
-                _memory.AddTagWithSynonyms(st.Tag, st.Dimension, definitionStr, st.Synonyms, status: "unexamined");
-
-                var newCode = _memory.GetTagCode(st.Tag, st.Dimension);
-                if (newCode != null)
-                {
-                    hitCodes.Add(newCode);
-                    Console.WriteLine($"🆕 新增标签（待确认）: {st.Tag} → {newCode}");
-                }
-                else
-                {
-                    missingTags.Add(st);
-                    Console.WriteLine($"⚠️ 新增标签失败: {st.Tag}");
-                }
+                Console.WriteLine($"⏳ 标签未命中，留给 C 线处理: {st.Tag}");
+                missingTags.Add(st);
             }
         }
 
         // ============================================================
-        // 2. ★ 写卡片框架（C线前置）
+        // 2. ★ A 线查场景库命中层
+        // ============================================================
+        var sceneCategory = intentResult.Perception.Scene;
+        var sceneSub = intentResult.Perception.SceneSub;
+        bool sceneKnown = false;
+
+        if (!string.IsNullOrEmpty(sceneCategory))
+        {
+            var existingScenes = _sceneStore.GetByCategory(sceneCategory);
+            if (!string.IsNullOrEmpty(sceneSub))
+            {
+                sceneKnown = existingScenes.Any(s => s.Sub == sceneSub);
+            }
+            else
+            {
+                sceneKnown = existingScenes.Any();
+            }
+
+            if (sceneKnown)
+            {
+                Console.WriteLine($"[Middleware] 场景命中: {sceneCategory}/{sceneSub}");
+            }
+            else
+            {
+                Console.WriteLine($"[Middleware] 场景未命中，留给 C 线收录: {sceneCategory}/{sceneSub}");
+            }
+        }
+
+        // ============================================================
+        // 3. ★ 写卡片框架（C线前置）
         // ============================================================
         var topicId = sessionId;
         var tagTexts = structuredTags.Select(t => t.Tag).ToList();
@@ -167,14 +186,18 @@ public class Middleware
         }
 
         // ============================================================
-        // 3. 用命中的 code 查密码簿 → 认知卡片
+        // 4. 用命中的 code 查密码簿 → 认知卡片
         // ============================================================
         CognitiveMatchResultModel? cognitiveResult = null;
         if (hitCodes.Count > 0)
         {
             try
             {
-                cognitiveResult = await _memory.CognitiveMatchByCodes(hitCodes.Distinct().ToList(), sessionId);
+                cognitiveResult = await _memory.CognitiveMatchByCodes(
+                    hitCodes.Distinct().ToList(),
+                    sessionId,
+                    intentResult.Perception.Scene,
+                    intentResult.Perception.SceneSub);
                 if (cognitiveResult != null)
                 {
                     Console.WriteLine($"🧠 认知匹配命中: {cognitiveResult.Summary}");
@@ -197,7 +220,7 @@ public class Middleware
         }
 
         // ============================================================
-        // 4. 分流取数（L5 传递层）
+        // 5. 分流取数（L5 传递层）
         // ============================================================
         var route = intentResult.Route;
         var deepContent = "";
@@ -207,29 +230,62 @@ public class Middleware
             switch (route)
             {
                 case "medium":
-                    if (!string.IsNullOrEmpty(cognitiveResult.SourcePath))
+                    // ★ 改用 OverviewPointer
+                    if (!string.IsNullOrEmpty(cognitiveResult.OverviewPointer))
                     {
+                        var overview = await _memory.GetOverview(cognitiveResult.OverviewPointer);
+                        if (!string.IsNullOrEmpty(overview))
+                        {
+                            deepContent = overview;
+                            Console.WriteLine($"📄 已读取概览: {cognitiveResult.OverviewPointer}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"⚠️ 概览内容为空或文件不存在: {cognitiveResult.OverviewPointer}");
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(cognitiveResult.SourcePath))
+                    {
+                        // 兜底：没有 OverviewPointer 时尝试用 SourcePath
                         var overview = await _memory.GetOverview(cognitiveResult.SourcePath);
                         if (!string.IsNullOrEmpty(overview))
                         {
                             deepContent = overview;
-                            Console.WriteLine($"📄 已读取概览: {cognitiveResult.SourcePath}");
-                        }
-                        else
-                        {
-                            Console.WriteLine($"⚠️ 概览内容为空或文件不存在: {cognitiveResult.SourcePath}");
+                            Console.WriteLine($"📄 已读取概览（兜底）: {cognitiveResult.SourcePath}");
                         }
                     }
                     break;
 
                 case "deep":
-                    if (!string.IsNullOrEmpty(cognitiveResult.RecordId))
+                    // ★ 优先用 EventId 读完整事件
+                    if (!string.IsNullOrEmpty(cognitiveResult.EventId))
+                    {
+                        try
+                        {
+                            var eventModel = await _thinkingStore.LoadEvent(cognitiveResult.EventId);
+                            if (eventModel != null && !string.IsNullOrEmpty(eventModel.Data?.AgentResponse))
+                            {
+                                deepContent = eventModel.Data.AgentResponse;
+                                Console.WriteLine($"📄 已读取完整事件: {cognitiveResult.EventId}");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"⚠️ 完整事件不存在或内容为空: {cognitiveResult.EventId}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"⚠️ 读取完整事件失败: {ex.Message}");
+                        }
+                    }
+                    // ★ 兜底：没有 EventId 时尝试用 RecordId
+                    else if (!string.IsNullOrEmpty(cognitiveResult.RecordId))
                     {
                         var fullText = await _memory.GetFullText(cognitiveResult.RecordId);
                         if (!string.IsNullOrEmpty(fullText))
                         {
                             deepContent = fullText;
-                            Console.WriteLine($"📄 已读取原文: {cognitiveResult.RecordId}");
+                            Console.WriteLine($"📄 已读取原文（兜底）: {cognitiveResult.RecordId}");
                         }
                         else
                         {
@@ -246,7 +302,7 @@ public class Middleware
         }
 
         // ============================================================
-        // 5. 组合 enrichedInput
+        // 6. 组合 enrichedInput
         // ============================================================
         var parts = new List<string>();
 
@@ -288,7 +344,10 @@ public class Middleware
                 }
             }
 
-            if (intentResult.MemoryInjectionMode == "detail" || intentResult.MemoryInjectionMode == "full")
+            // ★ 放宽拼装闸门：route 为 deep 时强制拼 deepContent
+            if (intentResult.MemoryInjectionMode == "detail" ||
+                intentResult.MemoryInjectionMode == "full" ||
+                route == "deep")
             {
                 if (!string.IsNullOrEmpty(cognitiveResult.SourcePath))
                     parts.Add($"概览路径：{cognitiveResult.SourcePath}");

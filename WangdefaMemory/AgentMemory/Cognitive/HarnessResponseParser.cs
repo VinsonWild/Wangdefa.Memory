@@ -1,8 +1,3 @@
-// Copyright 漏 2025-2026 VinsonWild (wangdefa)
-// Licensed under the Apache License, Version 2.0.
-// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-// See the LICENSE file in the repository root for full text.
-
 // ================================================================
 // HarnessResponseParser.cs — 结构化输出解析（纯静态工具类）
 // ================================================================
@@ -46,6 +41,7 @@ public static class HarnessResponseParser
                     {
                         Genre = perception.TryGetProperty("Genre", out var g) ? g.GetString() ?? "" : "",
                         Scene = perception.TryGetProperty("Scene", out var s) ? s.GetString() ?? "" : "",
+                        SceneSub = perception.TryGetProperty("SceneSub", out var ss) ? ss.GetString() ?? "" : "",
                         Emotion = perception.TryGetProperty("Emotion", out var e) ? e.GetString() ?? "" : "",
                         State = perception.TryGetProperty("State", out var st) ? st.GetString() ?? "" : "",
                         Context = perception.TryGetProperty("Context", out var c) ? c.GetString() ?? "" : ""
@@ -112,6 +108,7 @@ public static class HarnessResponseParser
                     {
                         Genre = perception.TryGetProperty("Genre", out var g) ? g.GetString() ?? "" : "",
                         Scene = perception.TryGetProperty("Scene", out var s) ? s.GetString() ?? "" : "",
+                        SceneSub = perception.TryGetProperty("SceneSub", out var ss) ? ss.GetString() ?? "" : "",
                         Emotion = perception.TryGetProperty("Emotion", out var e) ? e.GetString() ?? "" : "",
                         State = perception.TryGetProperty("State", out var st) ? st.GetString() ?? "" : "",
                         Context = perception.TryGetProperty("Context", out var c) ? c.GetString() ?? "" : ""

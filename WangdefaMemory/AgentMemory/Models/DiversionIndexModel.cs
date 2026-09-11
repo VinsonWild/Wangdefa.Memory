@@ -32,6 +32,10 @@ public class DiversionIndexModel
     /// <summary>全量类型：file / db / url</summary>
     public string FullTextType { get; set; } = "file";
 
+
+    /// <summary>关联的事件ID（用于 deep 读取完整事件正文） </summary>
+    public string? EventId { get; set; }
+
     /// <summary>创建时间</summary>
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 

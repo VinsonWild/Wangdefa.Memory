@@ -38,6 +38,9 @@ public class SummaryAnalysisResult
     /// 本轮反馈（独立于偏好，单次评价）
     /// </summary>
     public FeedbackEntry? Feedback { get; set; }
+
+    public string SceneCategory { get; set; } = "";
+    public string SceneSub { get; set; } = "";
 }
 
 /// <summary>

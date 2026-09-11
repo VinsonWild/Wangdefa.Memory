@@ -198,6 +198,20 @@ public class SummaryAnalyzer
             Console.WriteLine($"[SummaryAnalyzer] 反馈: {status} - {reason}");
         }
 
+        // ===== 解析 scene  =====
+        if (root.TryGetProperty("scene", out var sceneObj) && sceneObj.ValueKind == JsonValueKind.Object)
+        {
+            var category = sceneObj.TryGetProperty("category", out var cat) ? cat.GetString() ?? "" : "";
+            var sub = sceneObj.TryGetProperty("sub", out var s) ? s.GetString() ?? "" : "";
+
+            if (!string.IsNullOrEmpty(category))
+            {
+                result.SceneCategory = category;
+                result.SceneSub = sub;
+                Console.WriteLine($"[SummaryAnalyzer] 场景定稿: {category}/{sub}");
+            }
+        }
+
         // ===== ★ 解析标签合并决策 =====
         if (root.TryGetProperty("pending_tags_decision", out var pendingDecision) && pendingDecision.ValueKind == JsonValueKind.Object)
         {

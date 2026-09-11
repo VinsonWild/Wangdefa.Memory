@@ -1,4 +1,4 @@
-// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+ï»¿// Copyright Â© 2025-2026 VinsonWild (wangdefa)
 // Licensed under the Apache License, Version 2.0.
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 // See the LICENSE file in the repository root for full text.
@@ -9,21 +9,24 @@ namespace Wangdefa.AgentMemory.Models;
 
 public class PerceptionModel
 {
-    [JsonPropertyName("ÎÄÌå")]
+    [JsonPropertyName("æ–‡ä½“")]
     public string Genre { get; set; } = "";
 
-    [JsonPropertyName("Ê±¼ä")]
+    [JsonPropertyName("æ—¶é—´")]
     public string Time { get; set; } = "";
 
-    [JsonPropertyName("³¡¾°")]
+    [JsonPropertyName("åœºæ™¯")]
     public string Scene { get; set; } = "";
 
-    [JsonPropertyName("ÇéĞ÷")]
+    [JsonPropertyName("åœºæ™¯ç»†åˆ†")]
+    public string SceneSub { get; set; } = "";
+
+    [JsonPropertyName("æƒ…ç»ª")]
     public string Emotion { get; set; } = "";
 
-    [JsonPropertyName("×´Ì¬")]
+    [JsonPropertyName("çŠ¶æ€")]
     public string State { get; set; } = "";
 
-    [JsonPropertyName("Çé¾°")]
+    [JsonPropertyName("æƒ…æ™¯")]
     public string Context { get; set; } = "";
 }

@@ -101,7 +101,9 @@ public class MemoryTools
             var basePath = ServiceRegistry.GetBasePath();
             var cognitiveRecordsPath = Path.Combine(basePath, "cognitive", "records");
             var intentAnalyzer = new IntentAnalyzer(_chatService!, cognitiveRecordsPath);
-            var middleware = new Middleware(_memory!);
+            var sceneStore = new SceneStore(ServiceRegistry.GetBasePath());
+            var thinkingStore = ServiceRegistry.GetThinkingStore();
+            var middleware = new Middleware(_memory, sceneStore, thinkingStore);
             var pipeline = new MemoryPipeline(intentAnalyzer, middleware);
 
             var result = await pipeline.ProcessAsync(input, sessionId ?? "default");

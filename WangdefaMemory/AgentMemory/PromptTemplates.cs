@@ -7,9 +7,22 @@ namespace WangdefaMemory.AgentMemory;
 
 public static class PromptTemplates
 {
+    /// <summary>
+    /// 标签质量约束（A/C 线共用）
+    /// </summary>
+    private static readonly string TagQualityRules = """
+【标签质量约束】
+1. 禁止泛用词：工作、生活、问题、内容、事情、需求、系统、优化、开发、功能、信息、处理、分析、记录 等——这类词无法区分话题。
+2. 自检口诀：如果这个标签能套在 10 个以上不同话题上都成立，即为泛用，必须替换。
+3. 标签必须"可定位"：替换成能指认具体对象的词（✗ 优化 → ✓ 幂等冲突；✗ 开发 → ✓ 标签池；✗ 问题 → ✓ 场景细分）。
+4. 标签 2-4 个（不要为凑数硬凑，宁可少不可凑）。
+5. 语义重复的只留一个（"标签""标签池" 只留"标签池"）。
+6. 不要输出动作/过程类词（编译、测试、检查、验证、执行、操作），除非它能定位到具体对象。
+""";
+
     public static string GetIntentAnalysis()
     {
-        return """
+        var prompt = """
 你是王德发的意图分析模块。
 
 【你的任务】
@@ -71,6 +84,13 @@ public static class PromptTemplates
 - 生活闲聊：天气、心情、日常、吃饭、睡觉、娱乐
 - 情绪表达：感受、情绪、状态、累、烦、开心
 
+## 7. 场景细分（SceneSub）
+在 Scene 大类基础上进一步细分：
+- 工作：代码评审、文档编写、会议、规划、执行
+- 生活：购物、家务、社交、出行
+- 学习：阅读、练习、研究、整理笔记
+- 娱乐：游戏、影视、音乐、运动
+
 【输出格式】
 请严格遵守，按以下 JSON 格式输出（注意：必须输出合法的 JSON 对象）：
 
@@ -79,6 +99,7 @@ public static class PromptTemplates
 "Genre": "文体（记叙文/散文/议论文/说明文/意识流）",
 "Time": "时间（现在/昨天/今天/刚才/上次）",
 "Scene": "场景（工作/生活/学习/娱乐）",
+"SceneSub": "场景细分（如：代码评审/文档编写/会议/规划等）",
 "Emotion": "情绪（疲惫/开心/着急/中性）",
 "State": "状态（正常/想被理解/放松/紧张）",
 "Context": "情景（技术讨论/工作执行/生活闲聊/情绪表达）"
@@ -91,8 +112,8 @@ public static class PromptTemplates
 "response_style": "concise/balanced/detailed/executive",
 "structured_tags": [
 {
-"tag": "从用户输入中提取的核心关键词",
-"dimension": "内容/场景/任务/约束",
+"tag": "从用户输入中推测的记忆特征词",
+"dimension": "内容/任务/约束",
 "definitions": ["语义描述1", "语义描述2", "语义描述3"],
 "synonyms": ["近义词1", "近义词2"]
 }
@@ -123,19 +144,36 @@ executive（决策）：适用于需要最终结论、决策建议、行动方�
 
 用户明确要求详细/简单时，优先满足用户要求
 
-【标签生成规则】
+【记忆特征推测】
 
-tag：从用户输入中提取的核心关键词，2-6个
+你的任务不是概括这句话，而是推测：本轮对话可能与哪些历史记忆相关。
+输出的是"检索线索"，用于去记忆库中查找相关卡片。
 
-dimension：可选值为 内容/场景/任务/约束
+判据：
+1. 推测而非提取：站在"这段话之前发生过什么"的角度推测主题，而不是复述这句话里的词。
+2. 可召回性测试：这个标签应当是——用户以后提到它时，应该能召回本轮对话。提"编译""测试"这类每次都会出现的动作词没有意义。
+3. 对象优先：优先选概念/对象/问题词（标签池、场景细分、幂等冲突），少选动作/过程词（编译、测试、检查、验证）。
+4. 优先使用【近期记忆参考】里出现过的标签词，除非明显不相关。
 
-definitions：对提取的tag 做的语义描述，每个语义解释10字以内，每个tag最少2个语义解释，覆盖不同角度，输出时组合成数组形式。
+职责边界：
+A线只输出"检索线索"，不做归档判断。
+- 不需要判断标签是否与已有标签重复（C线负责）
+- 不需要保证标签一定正确（C线负责归一和纠正）
+- 目标只是"尽可能地召回相关历史记忆"
+
+tag：从用户输入中推测的记忆特征词，2-4个
+
+dimension：可选值为 内容/任务/约束
+
+definitions：对推测的tag 做的语义描述，每个语义解释10字以内，每个tag最少2个语义解释，覆盖不同角度，输出时组合成数组形式。
 
 synonyms：该标签的近义词列表，2-4个，用于后续匹配
 
 不需要从标签池中选择，直接根据语义生成
 
 可以参考【近期记忆参考】中的标签，帮助理解用户可能涉及的话题领域
+
+{TAG_QUALITY_RULES}
 
 【need_tools 判断规则】
 
@@ -161,11 +199,12 @@ full：需要完整信息时，注入摘要 + 概览 + 原文
 
 不要使用 markdown 代码块
 """;
+        return prompt.Replace("{TAG_QUALITY_RULES}", TagQualityRules);
     }
 
     public static string GetSummaryAnalysis()
     {
-        return """
+        var prompt = """
 你是王德发的记忆体分析模块。
 
 【你的任务】
@@ -179,19 +218,23 @@ Agent本轮回复：{agentResponse}
 A线特征标签：{structuredTags}
 缺失标签列表（需填充语义定义）：{missingTags}
 
+{TAG_QUALITY_RULES}
+
 【标签合并判断】（仅当存在待确认标签时执行）
 
 待确认标签列表：
 {pendingTags}
 
 请对每个待确认标签判断：它是否与标签池中已有的 active 标签表述同一件事？
-- 如果是，输出 "merge_to: 目标标签名"
-- 如果否，输出 "activate"
+- 如果与已有标签表述同一件事 → 输出 "merge_to: 目标标签名"
+- 如果否，且标签符合上述【标签质量约束】 → 输出 "activate"
+- 如果标签是泛用词、不符合【标签质量约束】 → 输出 "discard"
 
 输出格式：
 "pending_tags_decision": {
     "待确认标签名1": "merge_to: 已有标签名",
-    "待确认标签名2": "activate"
+    "待确认标签名2": "activate",
+    "待确认标签名3": "discard"
 }
 
 【偏好提取规则】
@@ -244,7 +287,8 @@ A线特征标签：{structuredTags}
   },
   "pending_tags_decision": {
     "待确认标签名1": "merge_to: 已有标签名",
-    "待确认标签名2": "activate"
+    "待确认标签名2": "activate",
+    "待确认标签名3": "discard"
   },
   "preferences": [
     {
@@ -257,6 +301,10 @@ A线特征标签：{structuredTags}
   "feedback": {
     "status": "confirmed",
     "reason": "认可了回复的哪个具体方面"
+  },
+  "scene": {
+    "category": "工作/生活/学习/娱乐",
+    "sub": "代码评审/文档编写/会议/规划等"
   }
 }
 
@@ -268,5 +316,6 @@ A线特征标签：{structuredTags}
 - preferences 如果没有可提取的偏好，输出 []
 - 只输出 JSON，不要其他内容
 """;
+        return prompt.Replace("{TAG_QUALITY_RULES}", TagQualityRules);
     }
 }

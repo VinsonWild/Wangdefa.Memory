@@ -1,5 +1,5 @@
 ﻿// ================================================================
-// MemorySinkService.cs — 记忆体写入（含偏好存储 + 标签合并）
+// MemorySinkService.cs — 记忆体写入（门面）
 // ================================================================
 
 using System.Text.Json;
@@ -9,7 +9,9 @@ using Wangdefa.AgentMemory.FeatureEngine.Models;
 using Wangdefa.AgentMemory.Interfaces;
 using Wangdefa.AgentMemory.Knowledge;
 using Wangdefa.AgentMemory.Models;
+using Wangdefa.AgentMemory.Services;
 using Wangdefa.AgentMemory.Signal;
+using Wangdefa.AgentMemory.Storage;
 using Wangdefa.AgentMemory.Thinking;
 using Wangdefa.AgentMemory.Thinking.Events;
 using Wangdefa.AgentMemory.Thinking.KnowledgeExtractor;
@@ -28,6 +30,12 @@ public class MemorySinkService : IMemorySinkService
     private readonly ILearningOrchestrator _learningOrchestrator;
     private readonly ISQLiteTools _sqliteTools;
     private readonly IChatService _chatService;
+    private readonly MemoryStore _store;
+    private readonly SceneStore _sceneStore;
+
+    private readonly PreferenceService _preferenceService;
+    private readonly FeedbackService _feedbackService;
+    private readonly TagMergeService _tagMergeService;
 
     public MemorySinkService(
         string recordsPath,
@@ -49,6 +57,13 @@ public class MemorySinkService : IMemorySinkService
         _learningOrchestrator = learningOrchestrator;
         _sqliteTools = sqliteTools;
         _chatService = chatService;
+
+        _store = new MemoryStore(basePath);
+        _sceneStore = new SceneStore(basePath);
+
+        _preferenceService = new PreferenceService();
+        _feedbackService = new FeedbackService();
+        _tagMergeService = new TagMergeService(_featureEngine, _recordsPath, _store);
     }
 
     // ============================================================
@@ -98,9 +113,7 @@ public class MemorySinkService : IMemorySinkService
                 TopicId = topicId
             };
 
-            var cognitivePath = Path.Combine(_recordsPath, $"{recordId}.json");
-            var cognitiveJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(cognitivePath, cognitiveJson);
+            await _store.WriteCardAsync(recordId, cognitiveRecord);
 
             if (tags.Count > 0)
             {
@@ -117,33 +130,16 @@ public class MemorySinkService : IMemorySinkService
                 OverviewPointer = $"knowledge/{topicId}/概览_{timestamp}.json",
                 FullTextPointer = sourcePath ?? "",
                 FullTextType = string.IsNullOrEmpty(sourcePath) ? "db" : "file",
+                EventId = eventId,
                 CreatedAt = DateTime.Now,
                 LastAccessAt = DateTime.Now
             };
 
-            await SaveIndexWithIdAsync(thinkingRecordId, diversionIndex, topicId);
-
-            cognitiveRecord.RecordId = thinkingRecordId;
-            var updatedJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(cognitivePath, updatedJson);
+            await _store.WriteIndexAsync(thinkingRecordId, diversionIndex, topicId);
 
             if (!string.IsNullOrEmpty(overview))
             {
-                var overviewModel = new OverviewModel
-                {
-                    Id = $"概览_{timestamp}",
-                    TopicId = topicId,
-                    CognitiveRecordId = recordId,
-                    Text = overview,
-                    ContentType = "chat",
-                    WordCount = overview.Length,
-                    Confidence = 0.8,
-                    CreatedAt = DateTime.Now
-                };
-
-                var overviewPath = Path.Combine(_knowledgePath, topicId, $"{overviewModel.Id}.json");
-                Directory.CreateDirectory(Path.GetDirectoryName(overviewPath)!);
-                await File.WriteAllTextAsync(overviewPath, JsonSerializer.Serialize(overviewModel, new JsonSerializerOptions { WriteIndented = true }));
+                await _store.WriteOverviewAsync(topicId, recordId, overview);
             }
 
             var perceptionJson = JsonSerializer.Serialize(perception);
@@ -192,7 +188,7 @@ public class MemorySinkService : IMemorySinkService
                 FeatureTags = tags.ToArray(),
             };
 
-            await _eventStore.SaveAsync(evt);
+            await _store.WriteEventAsync(evt);
             Console.WriteLine($"✅ 事件已存储: {evt.EventId}");
 
             _ = Task.Run(async () =>
@@ -254,9 +250,7 @@ public class MemorySinkService : IMemorySinkService
             TopicId = topicId
         };
 
-        var cognitivePath = Path.Combine(_recordsPath, $"{cardId}.json");
-        var cognitiveJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(cognitivePath, cognitiveJson);
+        await _store.WriteCardAsync(cardId, cognitiveRecord);
 
         if (tags.Count > 0)
         {
@@ -273,15 +267,12 @@ public class MemorySinkService : IMemorySinkService
             OverviewPointer = $"knowledge/{topicId}/概览_{timestamp}.json",
             FullTextPointer = sourcePath ?? "",
             FullTextType = string.IsNullOrEmpty(sourcePath) ? "db" : "file",
+            EventId = eventId,
             CreatedAt = DateTime.Now,
             LastAccessAt = DateTime.Now
         };
 
-        await SaveIndexWithIdAsync(indexId, diversionIndex, topicId);
-
-        cognitiveRecord.RecordId = indexId;
-        var updatedJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(cognitivePath, updatedJson);
+        await _store.WriteIndexAsync(indexId, diversionIndex, topicId);
 
         var evt = new EventModel
         {
@@ -315,14 +306,14 @@ public class MemorySinkService : IMemorySinkService
             FeatureTags = tags.ToArray(),
         };
 
-        await _eventStore.SaveAsync(evt);
+        await _store.WriteEventAsync(evt);
         Console.WriteLine($"✅ 事件框架已存储: {evt.EventId}，状态: pending");
 
         return cardId;
     }
 
     // ============================================================
-    // ★ 补全卡片 + 标签合并（含粗筛 + ContentTags 同步）
+    // ★ 补全卡片（门面：调度各 Service）
     // ============================================================
     public async Task CompleteAsync(
         string cardId,
@@ -331,22 +322,13 @@ public class MemorySinkService : IMemorySinkService
         string status,
         string? errorMessage = null)
     {
-        var cognitivePath = Path.Combine(_recordsPath, $"{cardId}.json");
-        if (!File.Exists(cognitivePath))
-        {
-            throw new FileNotFoundException($"卡片文件不存在: {cognitivePath}");
-        }
-
-        var json = await File.ReadAllTextAsync(cognitivePath);
-        var cognitiveRecord = JsonSerializer.Deserialize<CognitiveRecordModel>(json);
+        // 1. 加载卡片
+        var cognitiveRecord = await _store.ReadCardAsync(cardId);
         if (cognitiveRecord == null)
-        {
-            throw new InvalidOperationException($"卡片反序列化失败: {cognitivePath}");
-        }
+            throw new FileNotFoundException($"卡片文件不存在: {cardId}");
 
-        // ★ 从卡片中获取事件ID
+        // 2. 获取事件
         string? eventId = cognitiveRecord.EventId;
-
         if (string.IsNullOrEmpty(eventId))
         {
             var parts = cardId.Split('_');
@@ -377,101 +359,15 @@ public class MemorySinkService : IMemorySinkService
             eventModel = todayEvents.FirstOrDefault(e => e.CognitiveRecordId == cardId);
         }
 
-        // ===== C线：摘要生成 =====
+        // 3. 准备标签
         var contentTags = cognitiveRecord.Insight?.ContentTags ?? Array.Empty<string>();
         var structuredTagsFromCard = contentTags.Select(t => new StructuredTag { Tag = t }).ToArray();
+        var tagsToJudge = _tagMergeService.GetTagsToJudge(cognitiveRecord);
 
-        // ★ 获取本轮新建的 unexamined 标签
-        var pendingTagNames = cognitiveRecord.Insight?.ContentTags?
-            .Where(t => _featureEngine.Tags.GetEntry(t)?.Status == "unexamined")
-            .ToList() ?? new List<string>();
+        // 4. 获取上一轮概览
+        var previousAgentResponse = await GetPreviousOverviewAsync(cognitiveRecord.TopicId ?? "default");
 
-        var allPendingTags = _featureEngine.Tags.GetUnexaminedTagsByNames(pendingTagNames);
-
-        // ★ 粗筛：只把需要 LLM 判断的标签送进去
-        var tagsToJudge = new List<TagEntry>();
-        foreach (var pending in allPendingTags)
-        {
-            var candidates = _featureEngine.Tags.FindActiveByName(pending.Tag);
-            if (candidates.Count == 0)
-            {
-                _featureEngine.Tags.Activate(pending.Code);
-                Console.WriteLine($"[C线] 标签已激活（无同名候选）: {pending.Tag}");
-                continue;
-            }
-
-            double maxScore = 0;
-            foreach (var candidate in candidates)
-            {
-                var score = _featureEngine.Tags.CalculateSimilarity(pending, candidate);
-                if (score > maxScore) maxScore = score;
-            }
-
-            if (maxScore > 0.3)
-            {
-                tagsToJudge.Add(pending);
-                Console.WriteLine($"[C线] 标签进入 LLM 判断: {pending.Tag} (相似度: {maxScore:F2})");
-            }
-            else
-            {
-                _featureEngine.Tags.Activate(pending.Code);
-                Console.WriteLine($"[C线] 标签已激活（相似度 {maxScore:F2} <= 0.3）: {pending.Tag}");
-            }
-        }
-
-        // ★ 获取上一轮回复（概览原文）
-        string previousAgentResponse = "";
-        var topicId = cognitiveRecord.TopicId ?? "default";
-        var chatPath = _thinkingStore.GetTopicPath(topicId);
-        if (Directory.Exists(chatPath))
-        {
-            var files = Directory.GetFiles(chatPath, "记录_*.json")
-                .OrderByDescending(f => f)
-                .Take(2)
-                .ToArray();
-            if (files.Length >= 2)
-            {
-                try
-                {
-                    var prevJson = await File.ReadAllTextAsync(files[1]);
-                    var prevIndex = JsonSerializer.Deserialize<DiversionIndexModel>(prevJson);
-                    if (prevIndex != null && !string.IsNullOrEmpty(prevIndex.CognitiveRecordId))
-                    {
-                        var prevCardPath = Path.Combine(_recordsPath, $"{prevIndex.CognitiveRecordId}.json");
-                        if (File.Exists(prevCardPath))
-                        {
-                            var prevCardJson = await File.ReadAllTextAsync(prevCardPath);
-                            var prevCard = JsonSerializer.Deserialize<CognitiveRecordModel>(prevCardJson);
-                            if (prevCard != null && !string.IsNullOrEmpty(prevCard.SourcePath))
-                            {
-                                // 从知识库目录读取概览原文
-                                var overviewPath = Path.Combine(_knowledgePath, prevCard.SourcePath);
-                                if (File.Exists(overviewPath))
-                                {
-                                    var overviewJson = await File.ReadAllTextAsync(overviewPath);
-                                    var overviewModel = JsonSerializer.Deserialize<OverviewModel>(overviewJson);
-                                    previousAgentResponse = overviewModel?.Text ?? "";
-                                    Console.WriteLine($"[CompleteAsync] 获取到上一轮概览，长度: {previousAgentResponse.Length}");
-                                }
-                                else
-                                {
-                                    Console.WriteLine($"[CompleteAsync] 概览文件不存在: {overviewPath}");
-                                }
-                            }
-                            else
-                            {
-                                Console.WriteLine($"[CompleteAsync] 上一轮卡片无 SourcePath");
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[CompleteAsync] 取上一轮回复失败: {ex.Message}");
-                }
-            }
-        }
-
+        // 5. 调用 SummaryAnalyzer
         var summaryAnalyzer = new SummaryAnalyzer(_chatService);
         var summaryResult = await summaryAnalyzer.AnalyzeAsync(
             userInput: userInput,
@@ -482,41 +378,36 @@ public class MemorySinkService : IMemorySinkService
             pendingTags: tagsToJudge
         );
 
-        // 更新摘要
+        // 6. 更新卡片基础信息
         cognitiveRecord.Insight.Summary = !string.IsNullOrEmpty(summaryResult.Summary)
             ? summaryResult.Summary
             : (!string.IsNullOrEmpty(agentResponse)
                 ? (agentResponse.Length > 100 ? agentResponse.Substring(0, 100) : agentResponse)
                 : "");
-
         cognitiveRecord.Status = status;
         cognitiveRecord.Weight = 1.0;
         cognitiveRecord.LastAccessAt = DateTime.Now;
 
         if (status == "failed" && !string.IsNullOrEmpty(errorMessage))
-        {
             cognitiveRecord.Insight.Summary = $"错误: {errorMessage}";
-        }
 
-        // 更新缺失标签定义
+        // 7. 更新缺失标签定义
         if (summaryResult.MissingTagDefinitions != null && summaryResult.MissingTagDefinitions.Count > 0)
         {
             foreach (var kv in summaryResult.MissingTagDefinitions)
             {
                 var code = _featureEngine.Tags.GetCode(kv.Key);
                 if (code != null)
-                {
                     _featureEngine.Tags.UpdateDefinition(code, kv.Value);
-                }
             }
             Console.WriteLine($"✅ 已更新 {summaryResult.MissingTagDefinitions.Count} 个缺失标签定义");
         }
 
-        // ★ 更新偏好（合并模式，不覆盖）
+        // 8. 合并偏好
+        var existingPrefs = cognitiveRecord.Insight.Preferences ?? new List<PreferenceEntry>();
         if (summaryResult.Preferences != null && summaryResult.Preferences.Count > 0)
         {
-            var existing = cognitiveRecord.Insight.Preferences ?? new List<PreferenceEntry>();
-            cognitiveRecord.Insight.Preferences = MergePreferences(existing, summaryResult.Preferences);
+            cognitiveRecord.Insight.Preferences = _preferenceService.Merge(existingPrefs, summaryResult.Preferences);
             Console.WriteLine($"[CompleteAsync] 偏好已合并，共 {cognitiveRecord.Insight.Preferences.Count} 条");
         }
         else
@@ -525,69 +416,75 @@ public class MemorySinkService : IMemorySinkService
             Console.WriteLine($"[CompleteAsync] 本轮无新偏好，保留原有 {cognitiveRecord.Insight.Preferences.Count} 条");
         }
 
-        // ★ 存储 feedback 到事件
-        if (summaryResult.Feedback != null && !string.IsNullOrEmpty(summaryResult.Feedback.Status))
-        {
-            if (eventModel != null)
-            {
-                eventModel.Result.Extra ??= new Dictionary<string, object>();
-                eventModel.Result.Extra["feedback"] = new
-                {
-                    summaryResult.Feedback.Status,
-                    summaryResult.Feedback.Reason
-                };
-                Console.WriteLine($"[CompleteAsync] 反馈已保存: {summaryResult.Feedback.Status} - {summaryResult.Feedback.Reason}");
-            }
-        }
+        // 9. 写入 feedback（卡片 + 事件）
+        _feedbackService.ApplyToCard(cognitiveRecord, summaryResult.Feedback);
+        _feedbackService.SaveToEvent(eventModel, summaryResult.Feedback);
 
-        // ★ 写入 feedback 到卡片（独立于概览，无论是否有概览都执行）
-        if (summaryResult.Feedback != null && !string.IsNullOrEmpty(summaryResult.Feedback.Status))
-        {
-            cognitiveRecord.FeedbackStatus = summaryResult.Feedback.Status;
-            cognitiveRecord.FeedbackReason = summaryResult.Feedback.Reason;
-            Console.WriteLine($"[CompleteAsync] 卡片反馈已更新: {summaryResult.Feedback.Status}");
-        }
-        // 如果本轮没有 feedback，保留卡片原有的 FeedbackStatus（不清空）
-
-        // 保存概览
+        // 10. 保存概览
         if (!string.IsNullOrEmpty(summaryResult.Overview))
         {
-            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            var overviewModel = new OverviewModel
-            {
-                Id = $"概览_{timestamp}",
-                TopicId = topicId,
-                CognitiveRecordId = cardId,
-                Text = summaryResult.Overview,
-                ContentType = "chat",
-                WordCount = summaryResult.Overview.Length,
-                Confidence = 0.8,
-                CreatedAt = DateTime.Now
-            };
-
-            var overviewPath = Path.Combine(_knowledgePath, topicId, $"{overviewModel.Id}.json");
-            Directory.CreateDirectory(Path.GetDirectoryName(overviewPath)!);
-            await File.WriteAllTextAsync(overviewPath, JsonSerializer.Serialize(overviewModel, new JsonSerializerOptions { WriteIndented = true }));
-
-            cognitiveRecord.SourcePath = Path.Combine(topicId, $"{overviewModel.Id}.json");
-            Console.WriteLine($"✅ 概览已保存: {overviewPath}");
+            cognitiveRecord.SourcePath = await _store.WriteOverviewAsync(
+                cognitiveRecord.TopicId ?? "default",
+                cardId,
+                summaryResult.Overview
+            );
         }
 
-        // 保存认知卡片
-        var updatedJson = JsonSerializer.Serialize(cognitiveRecord, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(cognitivePath, updatedJson);
+        // ════════════════════════════════════════════════════════════
+        // ★ 11. C线为主、A线兜底：按字段分别取值定稿场景
+        // ════════════════════════════════════════════════════════════
+        var aCategory = cognitiveRecord.Perception.Scene;      // A线在 pending 卡里的值
+        var aSub = cognitiveRecord.Perception.SceneSub;
 
-        // ★ 更新事件
+        var category = !string.IsNullOrEmpty(summaryResult.SceneCategory)
+            ? summaryResult.SceneCategory
+            : aCategory;
+
+        var sub = !string.IsNullOrEmpty(summaryResult.SceneSub)
+            ? summaryResult.SceneSub
+            : (!string.IsNullOrEmpty(aSub) ? aSub : "");
+
+        if (!string.IsNullOrEmpty(category))
+        {
+            // name 拼装：sub 为空时用 NA 占位，避免 code 落成 UNKNOWN
+            var name = string.IsNullOrEmpty(sub) ? $"{category}-NA" : $"{category}-{sub}";
+            var subDisplay = string.IsNullOrEmpty(sub) ? "NA" : sub;
+
+            // 先查是否存在
+            var existing = _sceneStore.Get(category, sub, name);
+            if (existing == null)
+            {
+                _sceneStore.Add(category, sub, name);
+                Console.WriteLine($"[CompleteAsync] 场景已收录: {category}/{subDisplay}");
+            }
+            else
+            {
+                Console.WriteLine($"[CompleteAsync] 场景已存在: {category}/{subDisplay}");
+            }
+
+            // 写回卡片 Perception
+            cognitiveRecord.Perception.Scene = category;
+            cognitiveRecord.Perception.SceneSub = sub;
+
+            Console.WriteLine($"[CompleteAsync] 场景定稿: C={summaryResult.SceneCategory}/{summaryResult.SceneSub}, A={aCategory}/{aSub}, 最终={category}/{subDisplay}");
+        }
+        else
+        {
+            Console.WriteLine($"[CompleteAsync] 无场景信息（C和A均为空），跳过场景处理");
+        }
+
+        // 12. 保存卡片
+        await _store.WriteCardAsync(cardId, cognitiveRecord);
+
+        // 13. 更新事件
         if (eventModel != null)
         {
             eventModel.Data.AgentResponse = agentResponse;
             eventModel.Result.Status = status;
             eventModel.Result.Summary = summaryResult.Summary ?? "";
             if (status == "failed" && !string.IsNullOrEmpty(errorMessage))
-            {
                 eventModel.Result.ErrorMessage = errorMessage;
-            }
-            await _eventStore.SaveAsync(eventModel);
+            await _store.WriteEventAsync(eventModel);
             Console.WriteLine($"✅ 事件已补全: {eventModel.EventId}，状态: {status}");
         }
         else
@@ -595,7 +492,7 @@ public class MemorySinkService : IMemorySinkService
             Console.WriteLine($"[CompleteAsync] ⚠️ 未能找到关联事件，状态更新可能不完整");
         }
 
-        // 更新特征统计
+        // 14. 更新特征统计
         if (cognitiveRecord.Insight.ContentTags?.Length > 0)
         {
             var codes = cognitiveRecord.Insight.ContentTags
@@ -610,7 +507,7 @@ public class MemorySinkService : IMemorySinkService
             }
         }
 
-        // 写入 SQLite
+        // 15. 写入 SQLite
         var perceptionJson = JsonSerializer.Serialize(cognitiveRecord.Perception);
         await _sqliteTools.WriteRecord(
             cognitiveRecord.Insight.Summary ?? "",
@@ -624,56 +521,62 @@ public class MemorySinkService : IMemorySinkService
             ""
         );
 
-        // ============================================================
-        // ★ C线标签合并执行 + ContentTags 同步
-        // ============================================================
-        foreach (var decision in summaryResult.PendingTagsDecision)
+        // 16. 执行标签合并
+        if (summaryResult.PendingTagsDecision != null && summaryResult.PendingTagsDecision.Count > 0)
         {
-            var tagName = decision.Key;
-            var action = decision.Value;
-
-            var pendingTag = allPendingTags.FirstOrDefault(t => t.Tag == tagName);
-            if (pendingTag == null) continue;
-
-            if (action.StartsWith("merge_to:"))
-            {
-                var targetTagName = action.Replace("merge_to:", "").Trim();
-                var targetTag = _featureEngine.Tags.GetEntry(targetTagName);
-                if (targetTag != null)
-                {
-                    // 1. 合并标签池
-                    _featureEngine.Tags.MergeTags(pendingTag.Code, targetTag.Code);
-
-                    // 2. ★ 同步更新所有相关卡片的 ContentTags
-                    var cardIds = _featureEngine.Passwords.GetCards(targetTag.Code);
-                    foreach (var cid in cardIds)
-                    {
-                        UpdateCardContentTag(cid, pendingTag.Tag, targetTagName);
-                    }
-
-                    Console.WriteLine($"[C线] 已合并标签: {tagName} → {targetTagName}");
-                }
-            }
-            else if (action == "activate")
-            {
-                _featureEngine.Tags.Activate(pendingTag.Code);
-                Console.WriteLine($"[C线] 标签已激活: {tagName}");
-            }
+            var allPendingTags = _featureEngine.Tags.GetUnexaminedTagsByNames(
+                cognitiveRecord.Insight?.ContentTags?
+                    .Where(t => _featureEngine.Tags.GetEntry(t)?.Status == "unexamined")
+                    .ToList() ?? new List<string>()
+            );
+            _tagMergeService.ExecuteDecisions(summaryResult.PendingTagsDecision, allPendingTags);
         }
 
         Console.WriteLine($"✅ CompleteAsync: 卡片已补全 {cardId}，状态: {status}");
     }
 
+    public async Task<string?> GetOverviewTextAsync(string sourcePath)
+    {
+        return await _store.ReadOverviewTextAsync(sourcePath);
+    }
+
     // ============================================================
-    // 辅助方法
+    // 私有辅助方法
     // ============================================================
 
-    private async Task SaveIndexWithIdAsync(string indexId, DiversionIndexModel index, string topicId)
+    private async Task<string> GetPreviousOverviewAsync(string topicId)
     {
         var chatPath = _thinkingStore.GetTopicPath(topicId);
-        var path = Path.Combine(chatPath, $"{indexId}.json");
-        var json = JsonSerializer.Serialize(index, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(path, json);
+        if (!Directory.Exists(chatPath))
+            return "";
+
+        var files = Directory.GetFiles(chatPath, "记录_*.json")
+            .OrderByDescending(f => f)
+            .Take(2)
+            .ToArray();
+
+        if (files.Length < 2)
+            return "";
+
+        try
+        {
+            var prevJson = await File.ReadAllTextAsync(files[1]);
+            var prevIndex = JsonSerializer.Deserialize<DiversionIndexModel>(prevJson);
+            if (prevIndex?.CognitiveRecordId == null)
+                return "";
+
+            var prevCard = await _store.ReadCardAsync(prevIndex.CognitiveRecordId);
+            if (prevCard?.SourcePath == null)
+                return "";
+
+            var overviewText = await _store.ReadOverviewTextAsync(prevCard.SourcePath);
+            return overviewText ?? "";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CompleteAsync] 取上一轮回复失败: {ex.Message}");
+            return "";
+        }
     }
 
     private async Task TriggerLearningAsync(EventModel evt)
@@ -723,12 +626,8 @@ public class MemorySinkService : IMemorySinkService
                 CreatedAt = DateTime.Now
             };
 
-            var summaryPath = Path.Combine(_knowledgePath, topicId, $"{summary.Id}.json");
-            var overviewPath = Path.Combine(_knowledgePath, topicId, $"{overview.Id}.json");
-            Directory.CreateDirectory(Path.GetDirectoryName(summaryPath)!);
-
-            await File.WriteAllTextAsync(summaryPath, JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = true }));
-            await File.WriteAllTextAsync(overviewPath, JsonSerializer.Serialize(overview, new JsonSerializerOptions { WriteIndented = true }));
+            await _store.WriteSummaryAsync(topicId, summary);
+            await _store.WriteOverviewAsync(topicId, "", overview.Text);
         }
         catch (Exception ex)
         {
@@ -741,75 +640,5 @@ public class MemorySinkService : IMemorySinkService
         var words = text.Split(new[] { ' ', '\n', '\r', '，', '。', '、', '！', '？', ',', '.', '!' }, StringSplitOptions.RemoveEmptyEntries);
         var freq = words.GroupBy(w => w).ToDictionary(g => g.Key, g => g.Count());
         return freq.OrderByDescending(kv => kv.Value).Take(10).Select(kv => kv.Key).ToArray();
-    }
-
-    /// <summary>
-    /// 合并偏好列表（不覆盖，同key合并）
-    /// </summary>
-    private List<PreferenceEntry> MergePreferences(List<PreferenceEntry> existing, List<PreferenceEntry> incoming)
-    {
-        var dict = existing.ToDictionary(p => p.Key, p => p);
-
-        foreach (var inc in incoming)
-        {
-            if (dict.TryGetValue(inc.Key, out var existingPref))
-            {
-                // 同key：置信度累加（上限0.95）
-                existingPref.Confidence = Math.Min(0.95, existingPref.Confidence + 0.05);
-
-                // 值不同时用新值覆盖（新值更准确）
-                if (existingPref.Value != inc.Value)
-                {
-                    existingPref.Value = inc.Value;
-                    Console.WriteLine($"[MergePreferences] 偏好更新: {inc.Key} = {inc.Value}");
-                }
-                else
-                {
-                    Console.WriteLine($"[MergePreferences] 偏好强化: {inc.Key} (confidence: {existingPref.Confidence:F2})");
-                }
-
-                // scene 合并
-                if (!string.IsNullOrEmpty(inc.Scene) && !existingPref.Scene.Contains(inc.Scene))
-                {
-                    existingPref.Scene = string.IsNullOrEmpty(existingPref.Scene)
-                        ? inc.Scene
-                        : existingPref.Scene + "," + inc.Scene;
-                }
-            }
-            else
-            {
-                // 新增偏好
-                dict[inc.Key] = inc;
-                Console.WriteLine($"[MergePreferences] 新增偏好: {inc.Key} = {inc.Value}");
-            }
-        }
-
-        return dict.Values.ToList();
-    }
-
-    // ============================================================
-    // ★ ContentTags 同步更新
-    // ============================================================
-
-    private void UpdateCardContentTag(string cardId, string oldTag, string newTag)
-    {
-        var path = Path.Combine(_recordsPath, $"{cardId}.json");
-        if (!File.Exists(path)) return;
-
-        var json = File.ReadAllText(path);
-        var record = JsonSerializer.Deserialize<CognitiveRecordModel>(json);
-        if (record?.Insight?.ContentTags == null) return;
-
-        var tags = record.Insight.ContentTags.ToList();
-        var index = tags.IndexOf(oldTag);
-        if (index >= 0)
-        {
-            tags[index] = newTag;
-            record.Insight.ContentTags = tags.ToArray();
-
-            var updatedJson = JsonSerializer.Serialize(record, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(path, updatedJson);
-            Console.WriteLine($"[C线] 卡片 {cardId} ContentTags 已更新: {oldTag} → {newTag}");
-        }
     }
 }

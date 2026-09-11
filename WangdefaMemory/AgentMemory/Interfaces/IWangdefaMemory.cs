@@ -27,7 +27,7 @@ public interface IWangdefaMemory
     /// <summary>
     /// 根据标签 code 列表匹配单条认知卡片
     /// </summary>
-    Task<CognitiveMatchResultModel?> CognitiveMatchByCodes(List<string> codes, string? topicId = null);
+    Task<CognitiveMatchResultModel?> CognitiveMatchByCodes(List<string> codes,string? topicId = null,string? currentScene = null,string? currentSceneSub = null);
 
     /// <summary>
     /// 匹配多条认知卡片，返回 TopN

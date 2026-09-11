@@ -1,4 +1,4 @@
-﻿// Copyright 漏 2025-2026 VinsonWild (wangdefa)
+﻿// Copyright © 2025-2026 VinsonWild (wangdefa)
 // Licensed under the Apache License, Version 2.0.
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 // See the LICENSE file in the repository root for full text.
@@ -48,9 +48,9 @@ public class CognitiveReader
         return results.FirstOrDefault();
     }
 
-    public async Task<CognitiveMatchResultModel?> MatchByCodes(List<string> codes, string? topicId = null)
+    public async Task<CognitiveMatchResultModel?> MatchByCodes(List<string> codes,string? topicId = null,string? currentScene = null,string? currentSceneSub = null)
     {
-        var results = await MatchTopNByCodes(codes, topicId, 1);
+        var results = await MatchTopNByCodes(codes, topicId, 1, currentScene, currentSceneSub);
         return results.FirstOrDefault();
     }
 
@@ -107,7 +107,9 @@ public class CognitiveReader
     public async Task<List<CognitiveMatchResultModel>> MatchTopNByCodes(
         List<string> codes,
         string? topicId = null,
-        int topN = 3)
+        int topN = 3,
+        string? currentScene = null,
+        string? currentSceneSub = null)
     {
         if (codes == null || codes.Count == 0)
         {
@@ -192,6 +194,21 @@ public class CognitiveReader
             }
             // 空状态：中性，不做调整
 
+            // ★ 场景权重修正
+            if (perception != null && !string.IsNullOrEmpty(perception.Scene) && !string.IsNullOrEmpty(currentScene))
+            {
+                if (perception.Scene == currentScene)
+                {
+                    finalConfidence += 0.1;
+                    Console.WriteLine($"🧠 卡片 {record.Id} 场景匹配 {currentScene}，权重 +0.1");
+                }
+                if (!string.IsNullOrEmpty(perception.SceneSub) && !string.IsNullOrEmpty(currentSceneSub) && perception.SceneSub == currentSceneSub)
+                {
+                    finalConfidence += 0.1;
+                    Console.WriteLine($"🧠 卡片 {record.Id} 场景细分匹配 {currentSceneSub}，权重 +0.1");
+                }
+            }
+
             results.Add(new CognitiveMatchResultModel
             {
                 Summary = record.Insight?.Summary ?? "",
@@ -205,6 +222,7 @@ public class CognitiveReader
                 SummaryPointer = diversionIndex?.SummaryPointer,
                 OverviewPointer = diversionIndex?.OverviewPointer,
                 FullTextPointer = diversionIndex?.FullTextPointer,
+                EventId = diversionIndex?.EventId,
                 FullTextType = diversionIndex?.FullTextType,
                 SourcePath = record.SourcePath,
                 Preferences = record.Insight?.Preferences ?? new List<PreferenceEntry>()

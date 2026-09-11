@@ -54,4 +54,9 @@ public interface IMemorySinkService
         string agentResponse,
         string status,
         string? errorMessage = null);
+
+    /// <summary>
+    /// ∂¡»°∏≈¿¿‘≠Œƒ
+    /// </summary>
+    Task<string?> GetOverviewTextAsync(string sourcePath);
 }

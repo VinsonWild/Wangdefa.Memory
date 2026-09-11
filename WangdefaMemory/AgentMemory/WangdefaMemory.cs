@@ -70,11 +70,11 @@ public class WangdefaMemory : IWangdefaMemory
         return await _cognitiveReader.Match(input, history ?? new List<string>(), topicId);
     }
 
-    public async Task<CognitiveMatchResultModel?> CognitiveMatchByCodes(List<string> codes, string? topicId = null)
+    public async Task<CognitiveMatchResultModel?> CognitiveMatchByCodes(List<string> codes,string? topicId = null,string? currentScene = null,string? currentSceneSub = null)
     {
         if (codes == null || codes.Count == 0)
             return null;
-        return await _cognitiveReader.MatchByCodes(codes, topicId);
+        return await _cognitiveReader.MatchByCodes(codes, topicId, currentScene, currentSceneSub);
     }
 
     public async Task<List<CognitiveMatchResultModel>> CognitiveMatchTopN(string input, List<string>? history = null, string? topicId = null, int topN = 3)
@@ -120,28 +120,7 @@ public class WangdefaMemory : IWangdefaMemory
     public async Task<string?> GetOverview(string sourcePath)
     {
         if (string.IsNullOrEmpty(sourcePath)) return null;
-
-        var fullPath = Path.Combine(_basePath, sourcePath);
-        if (!File.Exists(fullPath)) return null;
-
-        try
-        {
-            var json = await File.ReadAllTextAsync(fullPath);
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("Text", out var text))
-            {
-                return text.GetString();
-            }
-            if (doc.RootElement.TryGetProperty("text", out var textLower))
-            {
-                return textLower.GetString();
-            }
-            return null;
-        }
-        catch
-        {
-            return null;
-        }
+        return await _sinkService.GetOverviewTextAsync(sourcePath);
     }
 
     public async Task<string?> GetFullText(string recordId)
