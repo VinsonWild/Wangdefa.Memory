@@ -1,7 +1,7 @@
 ﻿// Copyright © 2025-2026 VinsonWild (wangdefa)
 // Licensed under the Apache License, Version 2.0.
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-// See the LICENSE file in the repository root for full text.
+// See the LICENSE file in the repository root for full license text.
 
 namespace WangdefaMemory.AgentMemory;
 
@@ -217,6 +217,7 @@ Agent上一轮回复：{previousAgentResponse}
 Agent本轮回复：{agentResponse}
 A线特征标签：{structuredTags}
 缺失标签列表（需填充语义定义）：{missingTags}
+格式残缺标签（需补写字段）：{malformedTags}
 
 {TAG_QUALITY_RULES}
 
@@ -225,16 +226,68 @@ A线特征标签：{structuredTags}
 待确认标签列表：
 {pendingTags}
 
-请对每个待确认标签判断：它是否与标签池中已有的 active 标签表述同一件事？
-- 如果与已有标签表述同一件事 → 输出 "merge_to: 目标标签名"
-- 如果否，且标签符合上述【标签质量约束】 → 输出 "activate"
-- 如果标签是泛用词、不符合【标签质量约束】 → 输出 "discard"
+请对每个待确认标签，按以下【两段式】流程判断：
+
+═══════════════════════════════════════
+【第一步：判断是否泛用】
+═══════════════════════════════════════
+
+如果该标签是泛用词（参见【标签质量约束】）→ 输出 "discard"，结束。
+如果不是泛用词 → 进入第二步。
+
+═══════════════════════════════════════
+【第二步：判断关系】
+═══════════════════════════════════════
+
+判断该标签与标签池中已有 active 标签的关系：
+
+- "synonym: 目标标签名"   → 同一个概念，互换不影响理解
+                              例：标签池 / 标签池管理
+- "related: 目标标签名"   → 同领域但不是同一个东西
+                              例：标签池 / 密码簿
+- "loose:   目标标签名"   → 只是沾边
+                              例：标签池 / 数据库
+- "activate"              → 无明显关系，正常激活
+
+判断要求：
+- synonym 是最强的等价关系，只在"互换不影响理解"时使用
+- related 是"同领域相关"，比 synonym 弱
+- loose 是最弱，只用于"沾边"
+- 没有明显关系才用 activate，不要强行关联
 
 输出格式：
 "pending_tags_decision": {
-    "待确认标签名1": "merge_to: 已有标签名",
-    "待确认标签名2": "activate",
-    "待确认标签名3": "discard"
+    "待确认标签名1": "synonym: 已有标签名",
+    "待确认标签名2": "related: 已有标签名",
+    "待确认标签名3": "loose: 已有标签名",
+    "待确认标签名4": "activate",
+    "待确认标签名5": "discard"
+}
+
+═══════════════════════════════════════
+【标签对齐判断】（仅当存在格式残缺标签时执行）
+═══════════════════════════════════════
+
+格式残缺标签列表：见上方【输入】段的"格式残缺标签"。
+这些标签是已经存在于标签池、但字段不完整的（如 definition 为空、dimensions 为空）。
+
+请对每个残缺标签，根据它缺什么补什么：
+
+- definition 缺失 → 补一个简短释义（10-25字，能定位这个标签的含义）
+- dimensions 缺失 → 补维度值
+    dimensions 可选值为 内容/任务/约束
+    （注意：如果该标签已有其他维度值，不要改动它们，只补"空"的情况）
+
+要求：
+- 只写需要补的字段，不要写不缺的字段
+- 如果无法判断某个字段该补什么，可以不写这个字段
+- 不要改动标签的 tag / code / synonyms / related_codes
+
+输出格式：
+"tag_alignments": {
+    "残缺标签名1": { "definition": "补写的释义" },
+    "残缺标签名2": { "dimensions": ["内容"] },
+    "残缺标签名3": { "definition": "补写的释义", "dimensions": ["任务", "约束"] }
 }
 
 【偏好提取规则】
@@ -286,9 +339,15 @@ A线特征标签：{structuredTags}
     "缺失标签2": "填充的语义定义"
   },
   "pending_tags_decision": {
-    "待确认标签名1": "merge_to: 已有标签名",
-    "待确认标签名2": "activate",
-    "待确认标签名3": "discard"
+    "待确认标签名1": "synonym: 已有标签名",
+    "待确认标签名2": "related: 已有标签名",
+    "待确认标签名3": "loose: 已有标签名",
+    "待确认标签名4": "activate",
+    "待确认标签名5": "discard"
+  },
+  "tag_alignments": {
+    "残缺标签名1": { "definition": "补写的释义" },
+    "残缺标签名2": { "dimensions": ["内容"] }
   },
   "preferences": [
     {
@@ -310,9 +369,11 @@ A线特征标签：{structuredTags}
 
 【要求】
 - 为缺失标签列表中的每个标签填充语义定义（definition）
+- 为格式残缺标签列表中的每个标签补写缺失字段（tag_alignments）
 - feedback 必须包含 status 和 reason
 - 如果无法判断反馈，status 填 "ignored"，reason 填 ""
 - pending_tags_decision 仅在存在待确认标签时输出
+- tag_alignments 仅在存在格式残缺标签时输出
 - preferences 如果没有可提取的偏好，输出 []
 - 只输出 JSON，不要其他内容
 """;

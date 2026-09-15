@@ -1,10 +1,10 @@
 ﻿// Copyright © 2025-2026 VinsonWild (wangdefa)
 // Licensed under the Apache License, Version 2.0.
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-// See the LICENSE file in the repository root for full text.
+// See the LICENSE file in the repository root for full license text.
 
 // ================================================================
-// SummaryAnalyzer.cs — C 线：摘要分析（含偏好提取 + 反馈判断 + 标签合并）
+// SummaryAnalyzer.cs — C 线：摘要分析（含偏好提取 + 反馈判断 + 标签合并 + 版本对齐）
 // ================================================================
 
 using System.Text.Json;
@@ -33,7 +33,8 @@ public class SummaryAnalyzer
         string previousAgentResponse,
         StructuredTag[]? structuredTags = null,
         StructuredTag[]? missingTags = null,
-        List<TagEntry>? pendingTags = null)  
+        List<TagEntry>? pendingTags = null,
+        List<TagEntry>? malformedTags = null)
     {
         Console.WriteLine("[SummaryAnalyzer] 执行 C 线摘要分析...");
 
@@ -51,13 +52,25 @@ public class SummaryAnalyzer
                 $"- {t.Tag}（释义：{t.Definition ?? "无"}，近义词：{t.Synonyms ?? "无"}）"))
             : "（无待确认标签）";
 
+        // ★ 批次 E：列字段现状，让 LLM 自行判断该补什么（不重复实现 CompareWithCurrent 判据）
+        // 两个字段统一表达：空 / 值
+        var malformedTagsText = malformedTags != null && malformedTags.Count > 0
+            ? string.Join("\n", malformedTags.Select(t =>
+            {
+                var defText = string.IsNullOrWhiteSpace(t.Definition) ? "空" : t.Definition;
+                var dimText = string.IsNullOrWhiteSpace(t.Dimensions) || t.Dimensions == "[]" ? "空" : t.Dimensions;
+                return $"- {t.Tag}（释义：{defText}，维度：{dimText}）";
+            }))
+            : "（无格式残缺标签）";
+
         var prompt = _instruction
             .Replace("{userInput}", userInput)
             .Replace("{agentResponse}", agentResponse)
             .Replace("{previousAgentResponse}", previousAgentResponse)
             .Replace("{structuredTags}", structuredTagsText)
             .Replace("{missingTags}", missingTagsText)
-            .Replace("{pendingTags}", pendingTagsText);  
+            .Replace("{pendingTags}", pendingTagsText)
+            .Replace("{malformedTags}", malformedTagsText);
 
         var reply = await _chatService.ChatAsync(prompt);
 
@@ -220,6 +233,37 @@ public class SummaryAnalyzer
                 result.PendingTagsDecision[prop.Name] = prop.Value.GetString() ?? "";
             }
             Console.WriteLine($"[SummaryAnalyzer] 解析到 {result.PendingTagsDecision.Count} 个标签合并决策");
+        }
+
+        // ===== ★ 批次 E：解析版本对齐结果 =====
+        if (root.TryGetProperty("tag_alignments", out var alignments) && alignments.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var prop in alignments.EnumerateObject())
+            {
+                var tagName = prop.Name;
+                var alignmentObj = prop.Value;
+                if (alignmentObj.ValueKind != JsonValueKind.Object) continue;
+
+                var alignment = new TagAlignment();
+
+                if (alignmentObj.TryGetProperty("definition", out var alignDef)
+                    && alignDef.ValueKind == JsonValueKind.String)
+                    alignment.Definition = alignDef.GetString() ?? "";
+
+                if (alignmentObj.TryGetProperty("dimensions", out var alignDims) && alignDims.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var dim in alignDims.EnumerateArray())
+                    {
+                        if (dim.ValueKind != JsonValueKind.String) continue;
+                        var d = dim.GetString();
+                        if (!string.IsNullOrEmpty(d))
+                            alignment.Dimensions.Add(d);
+                    }
+                }
+
+                result.TagAlignments[tagName] = alignment;
+            }
+            Console.WriteLine($"[SummaryAnalyzer] 解析到 {result.TagAlignments.Count} 个标签对齐结果");
         }
 
         // ===== 填充标签 =====

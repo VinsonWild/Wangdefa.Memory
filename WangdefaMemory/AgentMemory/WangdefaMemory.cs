@@ -1,4 +1,6 @@
-﻿
+﻿// Copyright © 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0
+
 using System.Text.Json;
 using Wangdefa.AgentMemory.Cognitive;
 using Wangdefa.AgentMemory.FeatureEngine;
@@ -70,7 +72,7 @@ public class WangdefaMemory : IWangdefaMemory
         return await _cognitiveReader.Match(input, history ?? new List<string>(), topicId);
     }
 
-    public async Task<CognitiveMatchResultModel?> CognitiveMatchByCodes(List<string> codes,string? topicId = null,string? currentScene = null,string? currentSceneSub = null)
+    public async Task<CognitiveMatchResultModel?> CognitiveMatchByCodes(List<string> codes, string? topicId = null, string? currentScene = null, string? currentSceneSub = null)
     {
         if (codes == null || codes.Count == 0)
             return null;
@@ -151,6 +153,12 @@ public class WangdefaMemory : IWangdefaMemory
     {
         return _featureEngine.Tags.GetEntryByCode(code);
     }
+
+    public List<TagRelation> GetRelations(string code)
+        => _featureEngine.Tags.GetRelations(code);
+
+    public bool IsMalformed(TagEntry entry)
+        => _featureEngine.Tags.IsMalformed(entry);
 
     public async Task ExecuteEvolutionAsync(List<EvolutionAction> actions)
     {

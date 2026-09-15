@@ -1,17 +1,18 @@
-// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+ï»¿// Copyright Â© 2025-2026 VinsonWild (wangdefa)
 // Licensed under the Apache License, Version 2.0.
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 // See the LICENSE file in the repository root for full text.
 
 using Wangdefa.AgentMemory.Cognitive;
 using Wangdefa.AgentMemory.FeatureEngine;
+using Wangdefa.AgentMemory.FeatureEngine.Models;
 using Wangdefa.AgentMemory.Models;
 
 namespace Wangdefa.AgentMemory;
 
 /// <summary>
-/// ¼ÇÒäÌå¹ÜµÀ - AÏß + ÖĞ¼ä¼ş Í³Ò»Èë¿Ú
-/// ÊäÈëÓÃ»§ÏûÏ¢£¬Êä³ö enrichedInput£¨ÒâÍ¼ + ¼ÇÒä + Æ«ºÃ£©
+/// è®°å¿†ä½“ç®¡é“ - Açº¿ + ä¸­é—´ä»¶ ç»Ÿä¸€å…¥å£
+/// è¾“å…¥ç”¨æˆ·æ¶ˆæ¯ï¼Œè¾“å‡º enrichedInputï¼ˆæ„å›¾ + è®°å¿† + åå¥½ï¼‰
 /// </summary>
 public class MemoryPipeline
 {
@@ -25,20 +26,20 @@ public class MemoryPipeline
     }
 
     /// <summary>
-    /// ´¦ÀíÓÃ»§ÊäÈë£¬·µ»Ø enrichedInput
+    /// å¤„ç†ç”¨æˆ·è¾“å…¥ï¼Œè¿”å› enrichedInput
     /// </summary>
-    /// <param name="input">ÓÃ»§ÊäÈë</param>
-    /// <param name="sessionId">»á»°ID</param>
-    /// <returns>MemoryPipelineResult °üº¬ enrichedInput ºÍÖĞ¼ä½á¹û</returns>
+    /// <param name="input">ç”¨æˆ·è¾“å…¥</param>
+    /// <param name="sessionId">ä¼šè¯ID</param>
+    /// <returns>MemoryPipelineResult åŒ…å« enrichedInput å’Œä¸­é—´ç»“æœ</returns>
     public async Task<MemoryPipelineResult> ProcessAsync(string input, string sessionId = "default")
     {
-        // ===== 1. AÏß£ºÒâÍ¼·ÖÎö =====
+        // ===== 1. Açº¿ï¼šæ„å›¾åˆ†æ =====
         var intentResult = await _intentAnalyzer.AnalyzeAsync(input, sessionId);
-        Console.WriteLine($"?? ÒâÍ¼·ÖÎö: {intentResult.Intent}, route: {intentResult.Route}");
+        Console.WriteLine($"?? æ„å›¾åˆ†æ: {intentResult.Intent}, route: {intentResult.Route}");
 
-        // ===== 2. ÖĞ¼ä¼ş£ºÌØÕ÷ÍÆÑİ + ¼ÇÒä¼ìË÷ + ÉÏÏÂÎÄ×é×° =====
-        var (enrichedInput, cognitiveResult, missingTags, frameId) = await _middleware.ProcessAsync(input, sessionId, intentResult); 
-        Console.WriteLine($"?? ÖĞ¼ä¼şÍê³É£¬enrichedInput ³¤¶È: {enrichedInput.Length}");
+        // ===== 2. ä¸­é—´ä»¶ï¼šç‰¹å¾æ¨æ¼” + è®°å¿†æ£€ç´¢ + ä¸Šä¸‹æ–‡ç»„è£… =====
+        var (enrichedInput, cognitiveResult, missingTags, frameId, malformedTags) = await _middleware.ProcessAsync(input, sessionId, intentResult);
+        Console.WriteLine($"?? ä¸­é—´ä»¶å®Œæˆï¼ŒenrichedInput é•¿åº¦: {enrichedInput.Length}");
 
         return new MemoryPipelineResult
         {
@@ -46,38 +47,46 @@ public class MemoryPipeline
             IntentResult = intentResult,
             CognitiveResult = cognitiveResult,
             MissingTags = missingTags,
-            FrameId = frameId
+            FrameId = frameId,
+            MalformedTags = malformedTags
         };
     }
 }
 
 /// <summary>
-/// ¼ÇÒäÌå¹ÜµÀ´¦Àí½á¹û
+/// è®°å¿†ä½“ç®¡é“å¤„ç†ç»“æœ
 /// </summary>
 public class MemoryPipelineResult
 {
     /// <summary>
-    /// ×é×°ºÃµÄÉÏÏÂÎÄ×Ö·û´®£¨ÒâÍ¼ + ¼ÇÒä + Æ«ºÃ£©
+    /// ç»„è£…å¥½çš„ä¸Šä¸‹æ–‡å­—ç¬¦ä¸²ï¼ˆæ„å›¾ + è®°å¿† + åå¥½ï¼‰
     /// </summary>
     public string EnrichedInput { get; set; } = "";
 
     /// <summary>
-    /// ÒâÍ¼·ÖÎö½á¹û
+    /// æ„å›¾åˆ†æç»“æœ
     /// </summary>
     public IntentAnalysisResult IntentResult { get; set; } = new();
 
     /// <summary>
-    /// ÈÏÖªÆ¥Åä½á¹û
+    /// è®¤çŸ¥åŒ¹é…ç»“æœ
     /// </summary>
     public CognitiveMatchResultModel? CognitiveResult { get; set; }
 
     /// <summary>
-    /// Î´ÃüÖĞµÄ±êÇ©
+    /// æœªå‘½ä¸­çš„æ ‡ç­¾
     /// </summary>
     public StructuredTag[] MissingTags { get; set; } = Array.Empty<StructuredTag>();
 
     /// <summary>
-    /// ¿ò¼Ü¿¨Æ¬ID£¨ÓÉÖĞ¼ä¼şĞ´ÈëÊ±·µ»Ø£¬¹©²¹È«Ê±¾«È·¶¨Î»£©
+    /// æ¡†æ¶å¡ç‰‡IDï¼ˆç”±ä¸­é—´ä»¶å†™å…¥æ—¶è¿”å›ï¼Œä¾›è¡¥å…¨æ—¶ç²¾ç¡®å®šä½ï¼‰
     /// </summary>
     public string? FrameId { get; set; }
+
+    /// <summary>
+    /// æ®‹ç¼ºæ ‡ç­¾åˆ—è¡¨ï¼ˆæ‰¹æ¬¡ Eï¼šå¾… C çº¿å¯¹é½ï¼‰
+    /// TODO(å¾…æ¥çº¿): å½“å‰ MCP å±‚æœªä¼ ï¼ŒCompleteAsync èµ°å†…éƒ¨å…œåº•é‡æµ‹ã€‚
+    ///              æ¥çº¿å E-3 å£å¾„ï¼ˆç”¨æˆ·ç›´æ¥è¯´çš„ï¼‰ä¼˜å…ˆäºå…œåº•å£å¾„ï¼ˆå¡ç‰‡ä¸Šæ‰€æœ‰æ ‡ç­¾ï¼‰ã€‚
+    /// </summary>
+    public List<TagEntry> MalformedTags { get; set; } = new();
 }

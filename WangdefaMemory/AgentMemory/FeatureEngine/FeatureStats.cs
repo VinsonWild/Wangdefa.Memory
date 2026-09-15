@@ -1,4 +1,4 @@
-// Copyright Â© 2025-2026 VinsonWild (wangdefa)
+ï»¿// Copyright Â© 2025-2026 VinsonWild (wangdefa)
 // Licensed under the Apache License, Version 2.0.
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 // See the LICENSE file in the repository root for full text.
@@ -9,7 +9,7 @@ using Wangdefa.AgentMemory.FeatureEngine.Models;
 namespace Wangdefa.AgentMemory.FeatureEngine;
 
 /// <summary>
-/// ÌØÕ÷Í³¼Æ¹ÜÀí
+/// ç‰¹å¾ç»Ÿè®¡ç®¡ç†
 /// </summary>
 public class FeatureStats
 {
@@ -48,7 +48,7 @@ public class FeatureStats
     }
 
     /// <summary>
-    /// ¼ÇÂ¼ÌØÕ÷ÃüÖĞ
+    /// è®°å½•ç‰¹å¾å‘½ä¸­
     /// </summary>
     public void RecordHit(List<string> codes)
     {
@@ -59,7 +59,7 @@ public class FeatureStats
     }
 
     /// <summary>
-    /// ¼ÇÂ¼µ¥¸öÌØÕ÷ÃüÖĞ
+    /// è®°å½•å•ä¸ªç‰¹å¾å‘½ä¸­
     /// </summary>
     public void RecordHit(string code)
     {
@@ -78,7 +78,7 @@ public class FeatureStats
         cmd.Parameters.AddWithValue("@now", DateTime.Now);
         cmd.ExecuteNonQuery();
 
-        // ¸üĞÂ»º´æ
+        // æ›´æ–°ç¼“å­˜
         if (_stats.TryGetValue(code, out var stat))
         {
             stat.HitCount++;
@@ -99,7 +99,7 @@ public class FeatureStats
     }
 
     /// <summary>
-    /// »ñÈ¡ÌØÕ÷Í³¼Æ
+    /// è·å–ç‰¹å¾ç»Ÿè®¡
     /// </summary>
     public FeatureStat? GetStat(string code)
     {
@@ -107,7 +107,7 @@ public class FeatureStats
     }
 
     /// <summary>
-    /// »ñÈ¡ËùÓĞÍ³¼Æ
+    /// è·å–æ‰€æœ‰ç»Ÿè®¡
     /// </summary>
     public List<FeatureStat> GetAll()
     {
@@ -115,8 +115,12 @@ public class FeatureStats
     }
 
     /// <summary>
-    /// °´ÃüÖĞ´ÎÊıÅÅĞò£¨¸ßÆµÓÅÏÈ£©
+    /// è·å–å‘½ä¸­æ¬¡æ•°æœ€é«˜çš„ code åˆ—è¡¨
     /// </summary>
+    /// <remarks>
+    /// æ³¨æ„ï¼šè¿”å›çš„ code å¯èƒ½åŒ…å« merged / deprecated çŠ¶æ€ã€‚
+    /// è°ƒç”¨æ–¹è‹¥è¦ç”¨å®ƒæ£€ç´¢ï¼Œåº”èµ° TagDictionary.ResolveCode åšé‡å®šå‘ï¼ˆmergedï¼‰/ è¿‡æ»¤ï¼ˆdeprecatedï¼‰ã€‚
+    /// </remarks>
     public List<string> GetTopCodes(int topN = 20)
     {
         return _stats.Values

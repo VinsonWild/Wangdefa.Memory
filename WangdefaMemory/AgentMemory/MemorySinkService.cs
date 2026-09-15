@@ -320,7 +320,8 @@ public class MemorySinkService : IMemorySinkService
         string userInput,
         string agentResponse,
         string status,
-        string? errorMessage = null)
+        string? errorMessage = null,
+        List<TagEntry>? malformedTags = null)   // ★ 批次 E：可选，有传就用（E-3 口径），没传就兜底重测
     {
         // 1. 加载卡片
         var cognitiveRecord = await _store.ReadCardAsync(cardId);
@@ -364,6 +365,23 @@ public class MemorySinkService : IMemorySinkService
         var structuredTagsFromCard = contentTags.Select(t => new StructuredTag { Tag = t }).ToArray();
         var tagsToJudge = _tagMergeService.GetTagsToJudge(cognitiveRecord);
 
+        // ★ 批次 E：残缺标签 —— 有传就用（E-3 口径），没传就兜底重测
+        if (malformedTags == null)
+        {
+            malformedTags = new List<TagEntry>();
+            foreach (var tagName in contentTags.Distinct())
+            {
+                var entry = _featureEngine.Tags.GetEntry(tagName);
+                if (entry != null && _featureEngine.Tags.IsMalformed(entry))
+                    malformedTags.Add(entry);
+            }
+            Console.WriteLine($"[CompleteAsync] 兜底检测到 {malformedTags.Count} 个残缺标签");
+        }
+        else
+        {
+            Console.WriteLine($"[CompleteAsync] 使用传入的 {malformedTags.Count} 个残缺标签（E-3 口径）");
+        }
+
         // 4. 获取上一轮概览
         var previousAgentResponse = await GetPreviousOverviewAsync(cognitiveRecord.TopicId ?? "default");
 
@@ -375,7 +393,8 @@ public class MemorySinkService : IMemorySinkService
             previousAgentResponse: previousAgentResponse,
             structuredTags: structuredTagsFromCard,
             missingTags: null,
-            pendingTags: tagsToJudge
+            pendingTags: tagsToJudge,
+            malformedTags: malformedTags   // ★ 批次 E
         );
 
         // 6. 更新卡片基础信息
@@ -530,6 +549,42 @@ public class MemorySinkService : IMemorySinkService
                     .ToList() ?? new List<string>()
             );
             _tagMergeService.ExecuteDecisions(summaryResult.PendingTagsDecision, allPendingTags);
+        }
+
+        // ════════════════════════════════════════════════════════════
+        // ★ 17. 批次 E：执行版本对齐（只写实际出现的字段，空值不覆盖）
+        // ════════════════════════════════════════════════════════════
+        if (summaryResult.TagAlignments != null && summaryResult.TagAlignments.Count > 0)
+        {
+            int aligned = 0;
+            foreach (var kv in summaryResult.TagAlignments)
+            {
+                var tagName = kv.Key;
+                var alignment = kv.Value;
+                if (alignment == null) continue;
+
+                // 按名查 code（走 ResolveCode，merged 自动重定向）
+                var code = _featureEngine.Tags.GetCode(tagName);
+                if (code == null)
+                {
+                    Console.WriteLine($"[CompleteAsync] ⚠️ 对齐标签不存在，跳过: {tagName}");
+                    continue;
+                }
+
+                // 只写实际出现的字段
+                if (!string.IsNullOrEmpty(alignment.Definition))
+                {
+                    _featureEngine.Tags.UpdateDefinition(code, alignment.Definition);
+                    aligned++;
+                }
+
+                if (alignment.Dimensions != null && alignment.Dimensions.Count > 0)
+                {
+                    _featureEngine.Tags.UpdateDimensions(code, alignment.Dimensions);
+                    aligned++;
+                }
+            }
+            Console.WriteLine($"[CompleteAsync] 版本对齐完成，共 {aligned} 处写回");
         }
 
         Console.WriteLine($"✅ CompleteAsync: 卡片已补全 {cardId}，状态: {status}");

@@ -7,6 +7,7 @@ using Wangdefa.AgentMemory.Cognitive;
 using Wangdefa.AgentMemory.Interfaces;
 using Wangdefa.AgentMemory.Models;
 using Wangdefa.AgentMemory.FeatureEngine;
+using Wangdefa.AgentMemory.FeatureEngine.Models;
 
 namespace Wangdefa.AgentMemory.FeatureEngine;
 
@@ -23,7 +24,7 @@ public class Middleware
         _thinkingStore = thinkingStore;
     }
 
-    public async Task<(string enrichedInput, CognitiveMatchResultModel? cognitiveResult, StructuredTag[] missingTags, string? frameId)> ProcessAsync(
+    public async Task<(string enrichedInput, CognitiveMatchResultModel? cognitiveResult, StructuredTag[] missingTags, string? frameId, List<TagEntry> malformedTags)> ProcessAsync(
         string input,
         string sessionId,
         IntentAnalysisResult intentResult)
@@ -32,9 +33,10 @@ public class Middleware
         var hitCodes = new List<string>();
         var missingTags = new List<StructuredTag>();
         var processedTags = new HashSet<string>();
+        var malformedTags = new List<TagEntry>();
 
         // ============================================================
-        // 1. A线 标签匹配 + 近义匹配（只读，不写入）
+        // 1. A线 标签匹配 + 近义匹配 + 关联扩展（只读，不写入）
         // ============================================================
         foreach (var st in structuredTags)
         {
@@ -62,6 +64,7 @@ public class Middleware
                 var entry = _memory.GetTagEntryByCode(code);
                 if (entry != null)
                 {
+                    // 近义扩展（标签池）
                     var synonymsJson = entry.Synonyms;
                     if (!string.IsNullOrEmpty(synonymsJson) && synonymsJson != "[]")
                     {
@@ -89,6 +92,9 @@ public class Middleware
                             // 解析失败，忽略
                         }
                     }
+
+                    // ★ 关联扩展（synonym 多跳 / related 1 跳 / loose 跳过）
+                    ExpandRelations(code, hitCodes);
                 }
             }
 
@@ -115,6 +121,18 @@ public class Middleware
             if (matched && matchedCode != null)
             {
                 hitCodes.Add(matchedCode);
+
+                // ★ 批次 E：统一出口检测残缺（覆盖分支 A 和分支 B）
+                var matchedEntry = _memory.GetTagEntryByCode(matchedCode);
+                if (matchedEntry != null && _memory.IsMalformed(matchedEntry))
+                {
+                    if (malformedTags.All(t => t.Code != matchedEntry.Code))
+                    {
+                        malformedTags.Add(matchedEntry);
+                        Console.WriteLine($"[Middleware] ⚠️ 残缺标签待对齐: {matchedEntry.Tag}");
+                    }
+                }
+
                 continue;
             }
 
@@ -363,7 +381,81 @@ public class Middleware
 
         var enrichedInput = string.Join("\n", parts);
 
-        return (enrichedInput, cognitiveResult, missingTags.ToArray(), frameId);
+        return (enrichedInput, cognitiveResult, missingTags.ToArray(), frameId, malformedTags);
+    }
+
+    /// <summary>
+    /// 关联扩展（消费层）
+    /// synonym → 多跳（visited 防环，上限 3）
+    /// related → 仅 1 跳，入 hitCodes
+    /// loose   → 跳过
+    /// A 线只读，不写入
+    /// </summary>
+    private void ExpandRelations(string code, List<string> hitCodes)
+    {
+        var relations = _memory.GetRelations(code);
+        if (relations == null || relations.Count == 0) return;
+
+        var visited = new HashSet<string> { code };
+        var synonymQueue = new Queue<string>();
+
+        // 第一跳：处理当前 code 的所有关联
+        foreach (var rel in relations)
+        {
+            if (string.IsNullOrEmpty(rel.Code)) continue;
+
+            switch (rel.Level)
+            {
+                case RelationLevel.Synonym:
+                    if (visited.Add(rel.Code))
+                    {
+                        synonymQueue.Enqueue(rel.Code);
+                        AddToHitCodes(rel.Code, hitCodes);
+                        Console.WriteLine($"🔗 同义关联: {code} → {rel.Code}");
+                    }
+                    break;
+
+                case RelationLevel.Related:
+                    // 仅 1 跳，不继续扩展
+                    if (visited.Add(rel.Code))
+                    {
+                        AddToHitCodes(rel.Code, hitCodes);
+                        Console.WriteLine($"🔗 相关关联: {code} → {rel.Code}");
+                    }
+                    break;
+
+                case RelationLevel.Loose:
+                    // 跳过，不参与检索
+                    break;
+            }
+        }
+
+        // synonym 多跳（上限 3 跳）
+        var depth = 1;
+        while (synonymQueue.Count > 0 && depth < 3)
+        {
+            var current = synonymQueue.Dequeue();
+            var nextRelations = _memory.GetRelations(current);
+            if (nextRelations == null) continue;
+
+            foreach (var rel in nextRelations)
+            {
+                if (rel.Level != RelationLevel.Synonym) continue;
+                if (string.IsNullOrEmpty(rel.Code)) continue;
+                if (!visited.Add(rel.Code)) continue;
+
+                synonymQueue.Enqueue(rel.Code);
+                AddToHitCodes(rel.Code, hitCodes);
+                Console.WriteLine($"🔗 同义多跳: {code} → ... → {rel.Code} (depth={depth + 1})");
+            }
+            depth++;
+        }
+    }
+
+    private void AddToHitCodes(string code, List<string> hitCodes)
+    {
+        if (!hitCodes.Contains(code))
+            hitCodes.Add(code);
     }
 
     /// <summary>

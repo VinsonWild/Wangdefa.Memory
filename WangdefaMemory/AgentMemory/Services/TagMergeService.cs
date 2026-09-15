@@ -71,7 +71,7 @@ public class TagMergeService
     }
 
     /// <summary>
-    /// 执行标签合并决策
+    /// 执行标签决策（关系决策 / 激活 / 弃用 / 兼容合并）
     /// </summary>
     public void ExecuteDecisions(Dictionary<string, string> decisions, List<TagEntry> allPendingTags)
     {
@@ -83,7 +83,51 @@ public class TagMergeService
             var pendingTag = allPendingTags.FirstOrDefault(t => t.Tag == tagName);
             if (pendingTag == null) continue;
 
-            if (action.StartsWith("merge_to:"))
+            // ★ 新增：三级关联
+            if (action.StartsWith("synonym:"))
+            {
+                var targetTagName = action.Replace("synonym:", "").Trim();
+                var targetTag = _featureEngine.Tags.GetEntry(targetTagName);
+                if (targetTag != null)
+                {
+                    _featureEngine.Tags.AddRelation(pendingTag.Code, targetTag.Code, RelationLevel.Synonym);
+                    Console.WriteLine($"[TagMergeService] 建立同义关联: {tagName} ↔ {targetTagName}");
+                }
+                else
+                {
+                    Console.WriteLine($"[TagMergeService] ⚠️ synonym 目标标签不存在: {targetTagName}");
+                }
+            }
+            else if (action.StartsWith("related:"))
+            {
+                var targetTagName = action.Replace("related:", "").Trim();
+                var targetTag = _featureEngine.Tags.GetEntry(targetTagName);
+                if (targetTag != null)
+                {
+                    _featureEngine.Tags.AddRelation(pendingTag.Code, targetTag.Code, RelationLevel.Related);
+                    Console.WriteLine($"[TagMergeService] 建立相关关联: {tagName} ↔ {targetTagName}");
+                }
+                else
+                {
+                    Console.WriteLine($"[TagMergeService] ⚠️ related 目标标签不存在: {targetTagName}");
+                }
+            }
+            else if (action.StartsWith("loose:"))
+            {
+                var targetTagName = action.Replace("loose:", "").Trim();
+                var targetTag = _featureEngine.Tags.GetEntry(targetTagName);
+                if (targetTag != null)
+                {
+                    _featureEngine.Tags.AddRelation(pendingTag.Code, targetTag.Code, RelationLevel.Loose);
+                    Console.WriteLine($"[TagMergeService] 建立弱关联: {tagName} ↔ {targetTagName}");
+                }
+                else
+                {
+                    Console.WriteLine($"[TagMergeService] ⚠️ loose 目标标签不存在: {targetTagName}");
+                }
+            }
+            // ★ 兼容旧格式（历史 LLM 输出可能还有）
+            else if (action.StartsWith("merge_to:"))
             {
                 var targetTagName = action.Replace("merge_to:", "").Trim();
                 var targetTag = _featureEngine.Tags.GetEntry(targetTagName);
@@ -99,7 +143,7 @@ public class TagMergeService
                         UpdateCardContentTag(cid, pendingTag.Tag, targetTagName);
                     }
 
-                    Console.WriteLine($"[TagMergeService] 已合并标签: {tagName} → {targetTagName}");
+                    Console.WriteLine($"[TagMergeService] 已合并标签（兼容 merge_to）: {tagName} → {targetTagName}");
                 }
             }
             else if (action == "activate")
@@ -109,8 +153,9 @@ public class TagMergeService
             }
             else if (action == "discard")
             {
-                // 泛用词，跳过激活，不写标签池（保守处理，不误伤历史数据）
-                Console.WriteLine($"[TagMergeService] 标签被判定为泛用，跳过激活: {tagName}");
+                // 泛用词 → 弃用，进 deprecated 状态（现成黑名单，不再被送审）
+                _featureEngine.Tags.Deprecate(pendingTag.Code, "泛用词，C线弃用");
+                Console.WriteLine($"[TagMergeService] 标签被判泛用并弃用: {tagName}");
             }
         }
     }

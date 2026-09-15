@@ -35,6 +35,12 @@ public class SummaryAnalysisResult
     public Dictionary<string, string> PendingTagsDecision { get; set; } = new();
 
     /// <summary>
+    /// 版本对齐结果（批次 E：key: 标签名, value: 补写的字段）
+    /// 与 PendingTagsDecision 独立，互不干扰
+    /// </summary>
+    public Dictionary<string, TagAlignment> TagAlignments { get; set; } = new();
+
+    /// <summary>
     /// 本轮反馈（独立于偏好，单次评价）
     /// </summary>
     public FeedbackEntry? Feedback { get; set; }
@@ -57,4 +63,16 @@ public class FeedbackEntry
     /// 反馈原因说明
     /// </summary>
     public string Reason { get; set; } = "";
+}
+
+/// <summary>
+/// 标签对齐条目（批次 E 版本对齐层）
+/// </summary>
+public class TagAlignment
+{
+    /// <summary>补写的释义</summary>
+    public string Definition { get; set; } = "";
+
+    /// <summary>补写的维度</summary>
+    public List<string> Dimensions { get; set; } = new();
 }

@@ -4,6 +4,7 @@
 // See the LICENSE file in the repository root for full text.
 
 using Wangdefa.AgentMemory.Cognitive;
+using Wangdefa.AgentMemory.FeatureEngine.Models;
 using Wangdefa.AgentMemory.Models;
 
 namespace Wangdefa.AgentMemory.Interfaces;
@@ -48,12 +49,14 @@ public interface IMemorySinkService
     /// <param name="agentResponse">Agent回复</param>
     /// <param name="status">状态</param>
     /// <param name="errorMessage">错误信息</param>
+    /// <param name="malformedTags">残缺标签列表（批次 E：有传就用，没传就兜底重测）</param>
     Task CompleteAsync(
         string cardId,
         string userInput,
         string agentResponse,
         string status,
-        string? errorMessage = null);
+        string? errorMessage = null,
+        List<TagEntry>? malformedTags = null);
 
     /// <summary>
     /// 读取概览原文
