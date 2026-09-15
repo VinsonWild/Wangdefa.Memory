@@ -159,9 +159,10 @@ public interface IWangdefaMemory
     /// <param name="status">状态：completed / interrupted / failed</param>
     /// <param name="errorMessage">错误信息（当状态为 failed 时可选）</param>
     Task CompleteMemory(
-        string cardId,
-        string userInput,
-        string agentResponse,
-        string status,
-        string? errorMessage = null);
+    string cardId,
+    string userInput,
+    string agentResponse,
+    string status,
+    string? errorMessage = null,
+    List<TagEntry>? malformedTags = null);
 }

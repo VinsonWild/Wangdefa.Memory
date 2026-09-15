@@ -368,7 +368,9 @@ public class TagDictionary
 
     public TagEntry AddWithSynonyms(string tag, string tagType, string definition, string dimension, string source, string[]? synonyms = null, string status = "unexamined")
     {
-        var existing = _cache.GetByTag(tag) ?? _store.LoadFromDb(tag);
+        // ★ 判重包含 deprecated：已弃用标签同样占用 tag 名与 code，
+        //   若此处过滤掉它们，会被误判为「不存在」而重复建 code，撞 UNIQUE 约束。
+        var existing = _cache.GetByTag(tag) ?? _store.LoadFromDbIncludingDeprecated(tag);
         if (existing != null)
         {
             if (synonyms != null && synonyms.Length > 0)
@@ -385,6 +387,7 @@ public class TagDictionary
             return existing;
         }
 
+        // ... 以下是新建分支，一字不动
         var code = $"TAG_{tagType.ToUpper()}_{NormalizeTag(tag)}_{_cache.NextSeq:D3}";
         var dimsJson = JsonSerializer.Serialize(new List<string> { dimension });
         var synonymsJson = JsonSerializer.Serialize(synonyms ?? Array.Empty<string>());

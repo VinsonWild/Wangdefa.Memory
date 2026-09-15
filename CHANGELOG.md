@@ -1,5 +1,38 @@
 # Changelog / 更新记录
 
+## v1.1.9 (2026-09-15)
+
+### English
+- **Tag merge dead-link fix:** `merged` tags were never resolved on lookup — a merged old tag returned an empty shell and could be re-created as a new tag, causing duplicate accumulation. Lookups now follow `MergedTo` to the target, with cycle detection and a 3-hop limit; broken chains, cycles, or over-limit chains are logged and return null.
+- **Relational tag coexistence:** Replaced destructive merging with three-level relations — `synonym` (multi-hop, up to 3), `related` (1 hop), and `loose` (recorded only, no expansion). Relations are written bidirectionally, levels only upgrade, and the target must already exist so relations never create new tag rows. Merging destroyed recall entry points; relations preserve them.
+- **C-Line decision model reworked:** C-Line no longer emits `merge_to`. It now decides `synonym:` / `related:` / `loose:` / `activate` / `discard`. Merging — being irreversible — is no longer delegated to the LLM and remains available only through the admin interface.
+- **Merge semantic inheritance:** When tags are merged, the source tag's synonyms, definitions, and relations are carried over to the target instead of being stranded. Definition separators accept three historical forms (half-width comma, full-width comma, enumeration comma); relations are redirected one level deep, deduplicated, and kept bidirectional.
+- **Same-name definition accumulation:** When a tag with an existing name arrives again, its new definition is now accumulated with deduplication rather than discarded — the fuller the definitions, the more accurate the Jaccard similarity used to judge tag equivalence.
+- **Generic-word dead loop fix:** `discard` previously only logged, leaving the tag `unexamined` so it was submitted for review again on the next round. It now transitions the tag to `deprecated`, which the existing queries already exclude.
+- **Version alignment layer:** Tags now self-heal as they are used. A-Line detects malformed tags in passing (missing definition, missing dimensions, legacy relation format); C-Line completes or migrates them against the current C# model. Empty values never overwrite existing ones, and version judgment follows the model rather than hand-written rules — upgrading the model is the only place version logic changes.
+- **E-3 handoff wired through MCP:** Malformed tags detected by A-Line are cached by `frameId` and passed to `CompleteMemory`, so C-Line sees the terms the user actually used this turn. When nothing is cached, completion falls back to re-detecting malformed tags across the card's own tags.
+- **Fixed deprecated tags still being recalled:** A deprecated tag was filtered at the database layer but left in the in-memory cache, so lookups short-circuited on the cache and returned it anyway. Cache writes now pass a single `IsCacheable` gate that evicts deprecated entries at the source.
+- **Fixed duplicate tag creation hitting a UNIQUE constraint:** Deduplication reused the same query as business lookups, which filters out deprecated rows — so an existing deprecated tag was mistaken for "not found", a new code was generated, and insertion collided with the existing row. Deduplication now uses a dedicated query that includes deprecated rows.
+- **Fixed deprecation reason polluting the definition field:** `Deprecate` wrote its reason into `Definition`, overwriting the original definition, which the definition-merge flow then accumulated and which skewed similarity scoring. The reason now goes to the log only.
+- **Fixed `Activate` resurrecting deprecated tags:** Same root cause as the recall bug — with the deprecated object still cached, `Activate` could read it and flip it back to `active`. Evicting deprecated entries closes both paths.
+- **Tag lifecycle tests:** 14 new tests covering deprecated-tag recall, deduplication, definition integrity, revival, merged-tag redirection (single-hop and two-hop), and normal-tag regression.
+- **Fixed `CardPointerTests` path base:** The test resolved `SourcePath` against the memory root rather than the knowledge root, showing a passing case as a failure.
+
+### 中文
+- **标签合并死链修复：** `merged` 标签此前在查询时无人解析——已合并的老标签返回空壳，还可能被当成新标签重新写入，造成重复堆积。现在查询会顺着 `MergedTo` 重定向到目标，带成环检测与 3 跳上限；断链、成环、超限均记日志并返回 null。
+- **关联式标签共存：** 用三级关联取代消灭式合并——`synonym`（可多跳，上限 3）、`related`（1 跳）、`loose`（仅记录，不扩展）。关联双向写入，等级只升不降，且目标必须已存在，不因建关联而新增标签行。合并会毁掉召回入口，关联则保住它们。
+- **C线决策模型改造：** C线不再输出 `merge_to`，改为输出 `synonym:` / `related:` / `loose:` / `activate` / `discard`。合并属不可逆动作，不再交给 LLM 自动执行，仅保留管理接口。
+- **合并语义继承：** 合并时把源标签的近义词、释义、关联一并搬到目标，不再留在原地丢失。释义分隔符兼容三种历史写法（半角逗号、全角逗号、顿号）；关联只重定向一层，去重并保持双向一致。
+- **同名释义累积：** 同名标签再次进来时，新释义改为累积去重而非丢弃——释义越全，判断标签是否等价的 Jaccard 相似度越准。
+- **泛用词死循环修复：** `discard` 此前只打日志，标签仍是待审状态，下一轮又被送去判断。现在转为 `deprecated` 状态，而现有查询本就排除该状态。
+- **版本对齐层：** 标签在使用过程中自愈。A线顺路检测残缺标签（缺定义、缺维度、关联为旧格式），C线按当前 C# 模型补全或迁移。空值不覆盖已有值；版本判断以模型为准，不手写规则——模型升级时只改模型一处。
+- **E-3 传递链路接通 MCP：** A线检测到的残缺标签按 `frameId` 缓存，传给 `CompleteMemory`，让 C线看到用户本轮真正说过的词。无缓存时回退为扫描卡片自身标签重新检测。
+- **修复弃用标签仍被召回：** 弃用标签在数据库层已被过滤，但留在内存缓存中，查询先查缓存就把它返回了。现在缓存写入统一经过 `IsCacheable` 判断，从源头剔除。
+- **修复重复建标签撞 UNIQUE 约束：** 判重与业务查询共用了同一个方法，而该方法会过滤掉弃用标签，导致已弃用标签被误判为"不存在"，生成新 code 后与库中已有行冲突。判重改用专门的查询，包含弃用标签。
+- **修复弃用理由污染释义字段：** `Deprecate` 把弃用原因写进了 `Definition`，覆盖原释义，随后被释义累积流程当作语义内容合并，影响相似度计算。现在原因只记入日志。
+- **修复 `Activate` 复活弃用标签：** 与召回问题同一根因——弃用对象留在缓存里，`Activate` 拿到它就能改回 `active`。剔除缓存后两条路径一并关闭。
+- **新增标签生命周期测试：** 14 个测试，覆盖弃用标签召回、判重、释义完整性、复活、合并重定向（单跳与两跳）及正常标签回归。
+- **修正 `CardPointerTests` 的路径基准：** 该测试用记忆根目录而非知识库根目录解析 `SourcePath`，把本该通过的用例显示为失败。
 
 ## v1.1.8 (2026-09-11)
 

@@ -154,7 +154,7 @@ public class TagMergeService
             else if (action == "discard")
             {
                 // 泛用词 → 弃用，进 deprecated 状态（现成黑名单，不再被送审）
-                _featureEngine.Tags.Deprecate(pendingTag.Code, "泛用词，C线弃用");
+                _featureEngine.Tags.Deprecate(pendingTag.Code);
                 Console.WriteLine($"[TagMergeService] 标签被判泛用并弃用: {tagName}");
             }
         }

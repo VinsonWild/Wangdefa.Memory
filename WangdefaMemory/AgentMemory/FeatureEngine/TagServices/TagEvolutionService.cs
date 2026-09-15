@@ -40,7 +40,7 @@ public class TagEvolutionService
 
         entry.Status = "deprecated";
         if (!string.IsNullOrEmpty(reason))
-            entry.Definition = reason;
+            Console.WriteLine($"[TagEvolutionService] 弃用原因: {code} - {reason}");
 
         _store.UpdateStatus(code, "deprecated");
         _cache.Update(entry);

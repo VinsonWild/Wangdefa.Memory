@@ -142,8 +142,11 @@ public class CardPointerTests : IDisposable
         updatedCard!.Status.Should().Be("completed");
 
         // 5. SourcePath 应指向 topicId 下的概览文件
+        // 注意：SourcePath 是相对【知识库根目录】的路径（experience/knowledge），
+        // 不是相对 _basePath —— 与 MemoryStore.ReadOverviewAsync 的解析基准保持一致。
         updatedCard.SourcePath.Should().NotBeNullOrEmpty("补全后应更新 SourcePath 指向概览");
-        var sourceFullPath = Path.Combine(_basePath, updatedCard.SourcePath!);
+        var knowledgeRoot = Path.Combine(_basePath, "experience", "knowledge");
+        var sourceFullPath = Path.Combine(knowledgeRoot, updatedCard.SourcePath!);
         File.Exists(sourceFullPath).Should().BeTrue($"SourcePath 指向的文件应存在: {updatedCard.SourcePath}");
 
         // 6. 验证概览文件内容确实是 LLM 返回的概览

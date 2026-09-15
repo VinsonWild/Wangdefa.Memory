@@ -224,13 +224,14 @@ public class WangdefaMemory : IWangdefaMemory
     }
 
     public async Task CompleteMemory(
-        string cardId,
-        string userInput,
-        string agentResponse,
-        string status,
-        string? errorMessage = null)
+    string cardId,
+    string userInput,
+    string agentResponse,
+    string status,
+    string? errorMessage = null,
+    List<TagEntry>? malformedTags = null)
     {
-        await _sinkService.CompleteAsync(cardId, userInput, agentResponse, status, errorMessage);
+        await _sinkService.CompleteAsync(cardId, userInput, agentResponse, status, errorMessage, malformedTags);
     }
 
     // ============================================================

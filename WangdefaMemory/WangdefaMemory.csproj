@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 
 		<PackageId>Wangdefa.Memory</PackageId>
-		<Version>1.1.8</Version>
+		<Version>1.1.9</Version>
 		<Authors>wangdefa</Authors>
 		<Description>本地优先的 Agent 五层记忆体组件</Description>
 		<PackageTags>agent;memory;ai;local;sqlite</PackageTags>
@@ -20,7 +20,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
 	</ItemGroup>

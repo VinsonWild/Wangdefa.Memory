@@ -9,7 +9,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
-[![NuGet](https://img.shields.io/badge/NuGet-v1.1.8-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
+[![NuGet](https://img.shields.io/badge/NuGet-v1.1.9-orange.svg)](https://www.nuget.org/packages/Wangdefa.Memory/)
 [![DSH Plugin](https://img.shields.io/badge/DSH-Plugin-blue.svg)](https://github.com/topics/dsh-plugin)
 
 ---
@@ -122,7 +122,7 @@ It runs on three lines (A/B/C):
 1. Detect the input genre — human language falls into narrative, argumentative, expository, stream-of-consciousness, prose, etc. Genre detection isn't decoration; it sets the direction for intent inference.
 2. LLM performs intent analysis and outputs perception info (scene / scene sub / emotion / state / context), routing decision (shallow/medium/deep), and inferred memory feature tags.
 3. Inferred tags are used as retrieval clues. If they match existing tags, they're used directly; if not, they're left to C-Line (A-Line doesn't write to the tag pool).
-4. The engine performs multi-round expansion matching to find potentially related cognitive cards, ranked by confidence, and passes them to B-Line.
+4. The engine performs multi-round expansion matching (including three-level relation expansion) to find potentially related cognitive cards, ranked by confidence, and passes them to B-Line.
 5. Before B-Line starts, A-Line creates a cognitive card frame as a placeholder. After B-Line completes, C-Line fills in the details.
 
 **B-Line: Content Generation**
@@ -134,8 +134,10 @@ Receives A-Line's perception results, routing depth, relevant memories, and user
 1. Record the full event
 2. Write overview and summary
 3. Complete card tags, summary, pointers, and scene finalization
-4. Check new tag accuracy, merge same-meaning tags, intercept generic words
-5. Update preferences and feedback
+4. Tag governance: synonymous tags **form three-level relations** (synonym / related / loose) and coexist — none is retired
+5. Generic-word interception: words without discriminative power are marked **deprecated** and drop out of retrieval
+6. Version alignment: complete definitions and dimensions for malformed tags that are actually used
+7. Update preferences and feedback
 
 ---
 
@@ -150,7 +152,11 @@ Receives A-Line's perception results, routing depth, relevant memories, and user
 | **Self-Evolution** | Weight decay + periodic cleanup + tag evolution — high-frequency memories settle, low-frequency ones fade |
 | **Preference & Feedback Loop** | Preferences and feedback extracted and stored independently; feedback-aware retrieval |
 | **Intent-Driven Retrieval** | Memory injection depth depends on intent (shallow/medium/deep) |
-| **Tag Evolution** | Merge / split / deprecate / redirect — tags optimize themselves |
+| **Relational Tag Coexistence** | Three-level relations (synonym / related / loose) replace destructive merging — recall entry points preserved |
+| **Tag Lifecycle** | Unexamined → active / deprecated / merged — status drives both retrieval and governance |
+| **Dual-Line Boundary** | A-Line reads only; C-Line is the sole writer — the tag pool is never polluted by retrieval paths |
+| **Reversibility by Design** | LLM performs only reversible actions (relations / status / alignment); irreversible merges go to manual control |
+| **Version Alignment Self-Healing** | Model is the baseline; tags are completed and corrected passively as they are used — no offline batch jobs |
 | **Tag Quality Constraints** | Generic words forbidden, tags must be locatable, count limited to 2–4 |
 | **Unified Storage** | All writes go through a single entry point with atomic writes; power loss won't corrupt data |
 | **Local-First** | All data stored locally in SQLite + JSON |
@@ -302,7 +308,7 @@ The memory core is the **Feature Inference Engine**, responsible for matching an
 
 | Component | What It Stores | Question It Answers |
 |-----------|----------------|----------------------|
-| **TagDictionary** | All tags + definition + synonyms | "Does this tag exist? What's its code?" |
+| **TagDictionary** | All tags + definitions + synonyms + three-level relations + status | "Does this tag exist? What's its code? What is it related to?" |
 | **PasswordBook** | code → card ID list | "Which cards are associated with this tag?" |
 | **FeatureStats** | Card → which tags it has | "What tags does this card have?" |
 
@@ -310,13 +316,113 @@ The memory core is the **Feature Inference Engine**, responsible for matching an
 
 1. **Tag Matching**: Look up tag name in TagDictionary; merged tags auto-redirect to target
 2. **Synonym Matching**: Expand matching range via synonyms
-3. **PasswordBook Query**: Look up code → card ID list
-4. **FeatureStats Check**: Confirm which tags the card actually has; calculate match strength
-5. **Time Decay**: Match strength × `exp(-0.05 × days ago)` — recent memories prioritized
-6. **Feedback Adjustment**: confirmed boosted, rejected discarded, ignored/partial neutral
-7. **Scene Weighting**: category match +0.1, subcategory match another +0.1
-8. **Status Filter**: Only return `completed` cards
-9. **Sort & Return**: Descending by final weight, return TopN
+3. **Relation Expansion**: Expand recall through three-level relations (see "Tag Governance" below)
+4. **PasswordBook Query**: Look up code → card ID list
+5. **FeatureStats Check**: Confirm which tags the card actually has; calculate match strength
+6. **Time Decay**: Match strength × `exp(-0.05 × days ago)` — recent memories prioritized
+7. **Feedback Adjustment**: confirmed boosted, rejected discarded, ignored/partial neutral
+8. **Scene Weighting**: category match +0.1, subcategory match another +0.1
+9. **Status Filter**: Only return `completed` cards
+10. **Sort & Return**: Descending by final weight, return TopN
+
+---
+
+## 🏷️ Tag Governance
+
+The tag pool is the recall entry point for memory. How it evolves directly determines whether a memory *can be recalled at all*.
+
+### Why Not Destructive Merging
+
+LLMs naturally emit synonymous tags with different names: `tag pool` / `tag pool management` / `tag library`.
+
+The early approach was to merge them and keep the pool tidy. But that path has a flaw:
+
+> **The goal of a tag pool is not "cleanliness" — it is "full recall."**
+
+Merging means deleting an entry point. If the user later happens to use the deleted word, that memory becomes unreachable — sacrificing recall for tidiness is never a good trade.
+
+So we moved to **relational coexistence**: instead of eliminating tags, we build relations so they can find each other.
+
+### Three-Level Relations
+
+> **Scope**: synonymous **valid tags** with different names (e.g. `tag pool` / `tag library`).
+> Generic words do not use relations — they lack discriminative power and go through **deprecation** (see "Tag Lifecycle").
+
+| Level | Meaning | Retrieval Behavior |
+|-------|---------|--------------------|
+| `synonym` | Same meaning (interchangeable) | Multi-hop expansion, up to 3 hops |
+| `related` | Related (associated but not equivalent) | 1-hop expansion only |
+| `loose` | Weakly related (recorded only) | No expansion |
+
+**Writes are bidirectional** — either side being hit can find the other.
+
+**Levels only upgrade** — `loose → related → synonym` is allowed; downgrades are not.
+
+**Strict boundaries**:
+
+- The target tag must already exist; building a relation never creates a new tag row
+- Self-loops are forbidden
+- A relation write touches only `RelatedCodes`, never status
+
+These boundaries matter: historically, "recursively creating tags from synonyms" produced a permanent unexamined-tag dead loop.
+
+### Tag Lifecycle
+
+| Status | Meaning | Participates in Recall? |
+|--------|---------|-------------------------|
+| `unexamined` | Newly created, awaiting C-Line judgment | ✅ |
+| `active` | In service | ✅ |
+| `deprecated` | Deprecated (generic words, etc.) | ❌ |
+| `merged` | Merged into another tag | ✅ (as a redirect signpost) |
+
+**Keeping `merged` in cache is intentional** — its `MergedTo` points at the target tag, letting the old name redirect in one hop. It is a "live signpost," not abandoned residue.
+
+**`deprecated` is evicted from cache** — it points nowhere and should never be recalled again.
+
+**Two governance tools, two purposes**:
+
+| Tool | Applies To | Result |
+|------|------------|--------|
+| Build relations | Synonymous **valid tags** | Both kept, mutually findable (fuller recall) |
+| Mark deprecated | **Generic words** with no discriminative power | Removed from recall (more precise recall) |
+
+The first says "I don't want to lose an entry point"; the second says "keeping it only adds noise." Both are decided by the same question: **can it independently point at a class of memory?**
+
+### Dual-Line Read/Write Boundary
+
+| Line | Permission | Description |
+|------|------------|-------------|
+| **A-Line** (retrieval) | Read-only | Matched tags are used directly; unmatched ones are recorded only — never written to the pool |
+| **C-Line** (learning) | Sole writer | Tag creation, activation, deprecation, relations, and version alignment all happen here |
+
+**Why they must be separate**: if the retrieval path could write to the tag pool, "the user mentioned an unknown word" would become "a tag was conjured into existence." The pool would end up polluted by retrieval behavior, with no traceable source.
+
+### Reversibility by Design
+
+> **The LLM performs only reversible actions; irreversible ones go to manual control.**
+
+| Action | Reversible? | Performed By |
+|--------|-------------|--------------|
+| Build relation | ✅ Undoable | LLM (C-Line) |
+| Status control (activate/deprecate) | ✅ Rollback-able | LLM (C-Line) |
+| Version alignment (fill definition/dimensions) | ✅ Overwritable | LLM (C-Line) |
+| **Merge tags** | ❌ Irreversible | **Manual / admin interface** |
+
+Merging moves cards, transfers semantics, and retires the source tag — once wrong, it is very hard to undo. So it is not delegated to the LLM for automatic execution, though merge suggestions can still emerge from relations.
+
+### Version Alignment (Passive Self-Healing)
+
+Tags change as the system evolves: new fields, adjusted formats, added semantics. Historical tags can never be migrated all at once.
+
+The approach is to treat the **C# model as the baseline** and let tags heal as they are used:
+
+1. **Detect**: A-Line checks in passing whether a matched tag is malformed (missing definition, missing dimensions, legacy format)
+2. **Report**: Malformed tags travel with the card completion flow to C-Line
+3. **Align**: C-Line completes or migrates per the current model, **writing only fields that actually appear — empty values never overwrite**
+
+**Why "passive"**: it doesn't block the main flow, needs no offline batch job, and only fixes tags that are genuinely used — cold tags need not be pre-processed, and hot tags converge naturally.
+
+> Version judgment always follows the code model, never hand-written version rules. When the model is upgraded, only the model changes.
 
 ---
 
@@ -376,7 +482,7 @@ The memory core is the **Feature Inference Engine**, responsible for matching an
 | **L1** | Cognitive | `CognitiveReader` | Extract semantics and read cognitive cards via feature inference |
 | **L2** | Thinking | `ThinkingStore` | Consider depth, store learning, route index — record "where to find" |
 | **L3** | Experience | `EventStore`, `KnowledgeStore`, `MemorySinkService` | Store full interaction events, knowledge content, overviews, summaries — write cognitive cards |
-| **L4** | Feature Inference | `FeatureEngine` (TagDictionary + PasswordBook + FeatureStats + SceneStore) | Tag matching, synonym expansion, scene weighting, time-decay ranking |
+| **L4** | Feature Inference | `FeatureEngine` (TagDictionary + PasswordBook + FeatureStats + SceneStore) | Tag matching, synonym expansion, relation expansion, scene weighting, time-decay ranking |
 | **L5** | Delivery | Inside `Middleware` | Decide memory injection depth based on `route` (shallow/medium/deep) |
 
 ---
@@ -385,8 +491,7 @@ The memory core is the **Feature Inference Engine**, responsible for matching an
 
 ```
 memory/
-├── chat_history.db                         ← Chat history
-├── wangdefa_memory.db                      ← SQLite backup
+├── wangdefa_memory.db                      ← SQLite main database (record retrieval)
 ├── feature_pool.db                         ← TagDictionary + PasswordBook + FeatureStats
 ├── scene_store.db                          ← Scene store (category + subcategory)
 ├── cognitive/
@@ -424,7 +529,8 @@ Agent generates response → CompleteMemory(frameId, agentResponse)
     ├── Fill Summary
     ├── Update Status → completed / interrupted / failed
     ├── Finalize scene (C-Line leads, A-Line backs up)
-    ├── Tag quality review (generic word interception)
+    ├── Tag governance (build three-level relations / mark generic words deprecated)
+    ├── Version alignment (complete definition and dimensions of malformed tags)
     ├── Update FeatureStats
     └── Memory becomes retrievable
 ```
@@ -434,8 +540,9 @@ Agent generates response → CompleteMemory(frameId, agentResponse)
 ```
 User input → A-Line infers tags → Middleware
     ├── Tag matching (including merged tag redirection)
+    ├── Synonym expansion + relation expansion (synonym multi-hop / related 1 hop / loose no expansion)
     ├── Feature inference retrieval (tag matching + time decay + feedback adjustment + scene weighting)
-    ├── Status filter (only completed cards)
+    ├── Status filter (only completed cards; deprecated tags never recalled)
     └── Return CognitiveMatchResult
 ```
 
@@ -451,14 +558,18 @@ User input → A-Line infers tags → Middleware
 | `CognitiveMatchByCodes()` | Match memory by tag codes (supports scene parameters) |
 | `CognitiveMatchTopN()` | Match top N memories |
 | `WriteMemoryFrame()` | Write frame (status pending), return frameId |
-| `CompleteMemory()` | Complete card, update status and content |
+| `CompleteMemory()` | Complete card, update status and content (accepts a malformed-tag list) |
 | `SinkAsync()` | One-shot write (legacy mode) |
 | `AddTag()` | Add tag |
 | `AddTagWithSynonyms()` | Add tag with synonyms |
-| `GetTagCode()` | Get tag code |
+| `GetTagCode()` | Get tag code (`merged` tags auto-redirect; `deprecated` returns null) |
+| `GetTagCodeByTagAndDefinitions()` | Match code by tag name + definition list (for disambiguation) |
 | `GetTagEntryByCode()` | Get tag entry |
-| `ExecuteEvolutionAsync()` | Execute tag evolution (merge/split/deprecate) |
+| `GetRelations()` | Get three-level relations of a tag (synonym / related / loose) |
+| `IsMalformed()` | Check whether a tag is malformed (missing definition / dimensions / legacy format) |
+| `ExecuteEvolutionAsync()` | Execute tag evolution (activate / deprecate; use the admin interface for merging) |
 | `CleanMemoryAsync()` | Clean low-weight memories |
+| `GetSourcePathAsync()` | Get the overview path for a given topic and record |
 | `GetOverview()` | Get overview |
 | `GetFullText()` | Get full text |
 | `DeepSearch()` | Deep search |

@@ -36,8 +36,22 @@ public class TagCache
         return _codeCache.TryGetValue(code, out var entry) ? entry : null;
     }
 
+    /// <summary>
+    /// 是否允许进缓存。
+    /// 只有 deprecated 被排除 —— 它已彻底退场，无任何指向字段，不该被召回。
+    ///
+    /// ★ merged 有意保留：MergedTo 的存在就是为了兼容旧标签名，它是「活路标」，
+    ///   留缓存可让 ResolveCode 一跳到位。若将来要剔除 merged，
+    ///   需同步评估 B-1 重定向链路（当前该链路冷启动走 DB 亦可通，但会多一次查询）。
+    ///
+    /// 此判据与 TagStore 的 SQL 过滤（status != 'deprecated'）保持一致。
+    /// </summary>
+    private static bool IsCacheable(TagEntry entry)
+        => entry.Status != "deprecated";
+
     public void Add(TagEntry entry)
     {
+        if (!IsCacheable(entry)) return;
         _tagCache[entry.Tag] = entry;
         _codeCache[entry.Code] = entry;
         var seq = ExtractSeq(entry.Code);
@@ -46,14 +60,27 @@ public class TagCache
 
     public void Update(TagEntry entry)
     {
+        // 状态变为 deprecated → 从缓存剔除（Deprecate 走的就是这条路径）
+        if (!IsCacheable(entry))
+        {
+            Remove(entry.Tag, entry.Code);
+            return;
+        }
         _tagCache[entry.Tag] = entry;
         _codeCache[entry.Code] = entry;
     }
 
     public void Remove(string tag, string code)
     {
-        _tagCache.Remove(tag);
-        _codeCache.Remove(code);
+        var removedByTag = _tagCache.Remove(tag);
+        var removedByCode = _codeCache.Remove(code);
+
+        // 半清检测：两个索引不一致时告警（当前不会触发，tag 不会改名）
+        if (removedByTag != removedByCode)
+        {
+            Console.WriteLine(
+                $"[TagCache] ⚠️ 缓存半清: tag='{tag}'(移除={removedByTag}), code='{code}'(移除={removedByCode})");
+        }
     }
 
     public List<TagEntry> GetAllTags() => _tagCache.Values.ToList();

@@ -37,6 +37,31 @@ public class TagStore
         return null;
     }
 
+    /// <summary>
+    /// 判重专用：查询时【包含】deprecated 状态的行。
+    /// 用途是判断「标签名是否已被占用」—— 已弃用标签同样占用名字与 code，
+    /// 若此处过滤掉它们，会被误判为「不存在」而重复建 code，撞 UNIQUE 约束。
+    /// 注意：业务查询（A 线匹配、标签池展示）请勿使用本方法，应使用 LoadFromDb。
+    /// 命名取「行为」而非「用途」：行为不变（含 deprecated），用途可能扩展。
+    /// </summary>
+    public TagEntry? LoadFromDbIncludingDeprecated(string tag)
+    {
+        using var conn = _db.GetConnection();
+        conn.Open();
+
+        var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT * FROM tag_dictionary WHERE tag = @tag";
+        cmd.Parameters.AddWithValue("@tag", tag);
+
+        using var reader = cmd.ExecuteReader();
+        if (reader.Read())
+        {
+            return BuildEntry(reader);
+        }
+
+        return null;
+    }
+
     public TagEntry? LoadFromDbByCode(string code)
     {
         using var conn = _db.GetConnection();
