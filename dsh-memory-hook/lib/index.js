@@ -1,21 +1,21 @@
-import { CallId, createUserMessage } from "@deepseek-ai/dsh-llm";
+import * as llm from "@deepseek-ai/dsh-llm";
+import { createUserMessage } from "@deepseek-ai/dsh-llm";
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import { execSync } from "node:child_process";
 //#region lib/types/index.js
 /**
-* Auto-invoke a memory MCP service on the agent loop.
+* Brand a string as a tool-call id across DSH versions.
 *
-* This native cordis plugin makes a "WangdefaMemory"-style MCP server fire on its
-* own, instead of waiting for the model to call it. On every user prompt it calls
-* the `process_message` tool with the prompt text and injects the recalled memory
-* as context into the assembled step; when a turn stops it calls the `save_memory`
-* tool with the last user input + assistant reply to persist the conversation.
-*
-* It listens on the harness's canonical extension points:
-* - `agent/pre-step`      (user prompt → recall + inject, mirrors UserPromptSubmit)
-* - `agent/turn-stopping` (turn end → save, deduped per turn)
-* - `session/event`       (capture user input + assistant reply text)
-*
-* @module @wangdefa/dsh-wangdefa-memory-hook
+* The export was renamed `CallId` → `ToolCallId` (present in the published
+* `0.1.0-rc.*` line as `CallId`, renamed on `main`). Both are the same runtime
+* brand — a string tagged with a phantom type — so resolve whichever this host
+* exports rather than binding the plugin to one version's name. If a future
+* host renames it again, the identity fallback keeps the plugin loading: the
+* value is only an opaque id, so degrading is better than failing.
 */
+const brandToolCallId = llm.ToolCallId ?? llm.CallId ?? ((id) => id);
 /** Plugin source stamp so injected memory is never mistaken for a user prompt. */
 const PLUGIN_SOURCE = {
 	kind: "plugin",
@@ -44,7 +44,7 @@ function findString(value, field) {
 }
 async function callTool(ctx, agent, name, args, signal) {
 	return ctx.tools.execute({
-		callId: CallId(`wangdefa-memory-hook:${name}:${Date.now()}`),
+		callId: brandToolCallId(`wangdefa-memory-hook:${name}:${Date.now()}`),
 		name,
 		arguments: args,
 		agent,
@@ -57,11 +57,163 @@ const inject = [
 	"tools",
 	"sessions"
 ];
-function apply(ctx, config = {}) {
+/** Default engine download URL for the memory MCP server release asset. */
+const ENGINE_DOWNLOAD_URL = process.env.WANGDEFA_MEMORY_DOWNLOAD_URL ?? "https://github.com/VinsonWild/Wangdefa.Memory/releases/latest/download/WangdefaMemory.MCP.zip";
+/** GitHub API URL for checking the latest release version. */
+const GITHUB_API_URL = process.env.WANGDEFA_MEMORY_API_URL ?? "https://api.github.com/repos/VinsonWild/Wangdefa.Memory/releases/latest";
+/**
+* Resolved DeepSeek Harness home, mirroring the host's own `resolveDshHome`:
+* an explicit override wins, then `$DSH_HOME`, then the OS home + `.dsh`.
+* Kept local because a plugin has no Loader context to borrow.
+*/
+function dshHome() {
+	const explicit = process.env.DSH_HOME;
+	if (explicit !== void 0 && explicit.trim().length > 0) return path.resolve(explicit.trim());
+	return path.join(os.homedir(), ".dsh");
+}
+/** Directory where the engine (and its DLLs) are installed/looked up. */
+function engineInstallDir() {
+	return process.env.WANGDEFA_MEMORY_PATH ?? path.join(dshHome(), ".wangdefa");
+}
+/** Version file path inside the engine install directory. */
+function versionFilePath() {
+	return path.join(engineInstallDir(), "version.txt");
+}
+/** True when the memory MCP engine (its main DLL) is already installed. */
+function engineInstalled() {
+	try {
+		return fs.existsSync(path.join(engineInstallDir(), "WangdefaMemory.MCP.dll"));
+	} catch {
+		return false;
+	}
+}
+/** Get the currently installed engine version from version.txt. */
+function getInstalledVersion() {
+	try {
+		const vf = versionFilePath();
+		if (!fs.existsSync(vf)) return null;
+		return fs.readFileSync(vf, "utf-8").trim();
+	} catch {
+		return null;
+	}
+}
+/** Write the installed version to version.txt. */
+function writeInstalledVersion(version) {
+	try {
+		fs.writeFileSync(versionFilePath(), version.trim(), "utf-8");
+	} catch {}
+}
+/**
+* Strip 'v' prefix from version string for consistent comparison.
+*/
+function stripVersionPrefix(version) {
+	return version.replace(/^v/, "").trim();
+}
+/**
+* Fetch the latest release version from GitHub API using native fetch.
+* Returns null if the request fails (network, rate limit, etc.).
+* Timeout is 3 seconds to avoid blocking plugin startup.
+*/
+async function getLatestVersion() {
+	try {
+		const res = await fetch(GITHUB_API_URL, { signal: AbortSignal.timeout(3e3) });
+		if (!res.ok) return null;
+		const data = await res.json();
+		if (data && typeof data === "object" && "tag_name" in data) {
+			const tag = data.tag_name;
+			return stripVersionPrefix(tag);
+		}
+		return null;
+	} catch {
+		return null;
+	}
+}
+/**
+* Download and unpack the engine zip from GitHub Release.
+* Returns true on success, false on failure.
+*/
+function downloadAndUnpackEngine(dir, zipPath) {
+	console.log(`[wangdefa-memory-hook] 寮?濮嬩笅杞藉紩鎿? ${ENGINE_DOWNLOAD_URL}`);
+	try {
+		if (process.platform === "win32") execSync(`powershell -NoProfile -Command "Invoke-WebRequest -Uri '${ENGINE_DOWNLOAD_URL}' -OutFile '${zipPath}'"`, {
+			stdio: "ignore",
+			timeout: 6e5,
+			windowsHide: true
+		});
+		else execSync(`curl -L -o "${zipPath}" "${ENGINE_DOWNLOAD_URL}"`, {
+			stdio: "ignore",
+			timeout: 6e5,
+			windowsHide: true
+		});
+		if (!fs.existsSync(zipPath)) throw new Error("涓嬭浇鍚庢枃浠朵笉瀛樺湪");
+		if (process.platform === "win32") execSync(`powershell -NoProfile -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${dir}' -Force"`, {
+			stdio: "ignore",
+			timeout: 6e5,
+			windowsHide: true
+		});
+		else {
+			const tmpDir = path.join(dir, "__unzip__");
+			fs.mkdirSync(tmpDir, { recursive: true });
+			execSync(`unzip -o "${zipPath}" -d "${tmpDir}"`, {
+				stdio: "ignore",
+				timeout: 6e5,
+				windowsHide: true
+			});
+			for (const entry of fs.readdirSync(tmpDir)) fs.renameSync(path.join(tmpDir, entry), path.join(dir, entry));
+			fs.rmSync(tmpDir, {
+				recursive: true,
+				force: true
+			});
+		}
+		fs.rmSync(zipPath, { force: true });
+		return true;
+	} catch (error) {
+		fs.rmSync(zipPath, { force: true });
+		console.warn(`[wangdefa-memory-hook] 鈿狅笍 寮曟搸涓嬭浇/瑙ｅ帇澶辫触: ${String(error)}`);
+		return false;
+	}
+}
+/**
+* First-run bootstrap & auto-update:
+* - Check the latest release version from GitHub.
+* - If the engine is missing or outdated, download the latest version.
+* - Never throws; failures are logged as warnings.
+*/
+async function ensureEngine() {
+	const dir = engineInstallDir();
+	const installed = getInstalledVersion();
+	let latest = null;
+	try {
+		latest = await getLatestVersion();
+	} catch {}
+	if (latest) {
+		if (installed && installed === latest) return;
+		if (installed && installed !== latest) console.log(`[wangdefa-memory-hook] 馃摙 鍙戠幇鏂扮増鏈? ${latest}锛堝綋鍓? ${installed}锛夛紝姝ｅ湪鑷姩鏇存柊...`);
+		else console.log(`[wangdefa-memory-hook] 棣栨瀹夎锛屼笅杞藉紩鎿庣増鏈? ${latest}`);
+	} else {
+		if (engineInstalled()) return;
+		console.log("[wangdefa-memory-hook] 鏃犳硶妫?鏌ユ渶鏂扮増鏈紝灏濊瘯涓嬭浇榛樿寮曟搸...");
+	}
+	try {
+		fs.mkdirSync(dir, { recursive: true });
+	} catch {}
+	if (downloadAndUnpackEngine(dir, path.join(dir, "WangdefaMemory.MCP.zip"))) {
+		if (latest) writeInstalledVersion(latest);
+		else writeInstalledVersion((/* @__PURE__ */ new Date()).toISOString().slice(0, 10));
+		console.log(`[wangdefa-memory-hook] 鉁?璁板繂浣撳紩鎿庡凡灏辩华: ${path.join(dir, "WangdefaMemory.MCP.dll")}`);
+	} else {
+		console.warn(`[wangdefa-memory-hook] 鈿狅笍 寮曟搸瀹夎澶辫触锛岃鎵嬪姩涓嬭浇: ${ENGINE_DOWNLOAD_URL}`);
+		console.warn(`[wangdefa-memory-hook] 瑙ｅ帇鍒? ${dir}`);
+	}
+}
+async function apply(ctx, config = {}) {
+	await ensureEngine();
 	const processMessageTool = `${config.mcpPrefix ?? "mcp__WangdefaMemory__"}${config.processMessageTool ?? "process_message"}`;
 	const saveMemoryTool = `${config.mcpPrefix ?? "mcp__WangdefaMemory__"}${config.saveMemoryTool ?? "save_memory"}`;
 	const maxInjectedChars = config.maxInjectedChars ?? 4e3;
 	const state = /* @__PURE__ */ new Map();
+	/** Turn-claim table: agentId -> last turn that already ran recall. */
+	const claimedTurns = /* @__PURE__ */ new Map();
 	function snapshotFor(agent) {
 		const key = agent.id;
 		let snap = state.get(key);
@@ -93,7 +245,10 @@ function apply(ctx, config = {}) {
 			default: return;
 		}
 	});
-	ctx.on("agent/pre-step", async ({ agent, messages, signal }, next) => {
+	ctx.on("agent/pre-step", async ({ agent, messages, step, turn, signal }, next) => {
+		if (step !== 1) return next();
+		if (claimedTurns.get(agent.id) === turn) return next();
+		claimedTurns.set(agent.id, turn);
 		const prompt = messages.find((m) => m.source.kind === "user");
 		if (prompt === void 0) return next();
 		const userText = blocksToText(prompt.content).trim();
@@ -113,15 +268,17 @@ function apply(ctx, config = {}) {
 				if (frameId !== void 0) snap.pendingCardId = frameId;
 			} else ctx.logger.debug(`memory-hook: process_message recall failed for ${agent.id}`);
 		} catch (error) {
-			ctx.logger.warn(`memory-hook: process_message recall threw for ${agent.id}: ${String(error)}`);
+			if (signal.aborted) ctx.logger.debug(`memory-hook: process_message recall aborted for ${agent.id}`);
+			else ctx.logger.warn(`memory-hook: process_message recall threw for ${agent.id}: ${String(error)}`);
 		}
 		const downstream = await next();
 		if (downstream.kind !== "enter") return downstream;
 		if (recallText === void 0 || recallText.length === 0) return downstream;
+		const memory = recallText.length > maxInjectedChars ? recallText.slice(0, maxInjectedChars) : recallText;
 		const memoryMessage = createUserMessage({
 			content: [{
 				type: "text",
-				text: `[已检索到的历史记忆]\n${recallText.length > maxInjectedChars ? recallText.slice(0, maxInjectedChars) : recallText}`
+				text: `[宸叉绱㈠埌鐨勫巻鍙茶蹇哴\n${memory}`
 			}],
 			source: PLUGIN_SOURCE
 		});
@@ -151,6 +308,7 @@ function apply(ctx, config = {}) {
 	});
 	ctx.on("agent/disposed", ({ agent }) => {
 		state.delete(agent.id);
+		claimedTurns.delete(agent.id);
 	});
 }
 //#endregion

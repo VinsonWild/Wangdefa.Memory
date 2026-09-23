@@ -1,5 +1,47 @@
 # Changelog / 更新记录
 
+## v1.1.10 (2026-09-23)
+
+### English
+#### New Features
+
+- **MCP Server NuGet publishing** — Package metadata completed; the core package is bundled automatically on install.
+- **MCP Registry listing** — Discoverable through the official directory.
+
+#### Improvements
+
+- **DSH plugin auto-mount** — Fixed the issue where MCP could not mount automatically after plugin download.
+- **Plugin path alignment with host** — Engine directory now follows the DSH home path.
+- **Retrieval depth tuning** — Refined tier judgment rules, improving intent understanding for the medium and deep retrieval layers.
+- **Failure observability in injection** — Aborts and exceptions are now logged separately.
+
+#### Bug Fixes
+
+- **Persistence data** — Removed placeholder values; records now reflect the actual decision.
+- **Plugin loading** — Fixed the `CallId` crash caused by DSH 0.1.6 renaming.
+- **Memory injection per turn** — Fixed unstable trigger conditions introduced by the DSH 0.1.6 update.
+
+### 中文
+#### 新增功能
+
+- **MCP Server 的 NuGet 发布** — 补齐包元数据，安装时自动捆绑核心包。
+- **MCP Registry 登记** — 可通过官方目录被检索。
+
+#### 体验优化
+
+- **DSH 插件自动挂载优化** — 修复插件下载后 MCP 无法自动挂载的问题。
+- **插件路径对齐宿主** — 引擎目录跟随 DSH home。
+- **检索深度调整** — 优化了档位判断规则，优化中、深两层检索的意图理解判断。
+- **注入环节失败可观测** — abort 与异常分开记录。
+
+#### 问题修复
+
+- **落库数据问题修复** — 去掉占位值，反映真实决策。
+- **插件加载问题修复** — 修复 DSH 0.1.6 改名导致 `CallId` 崩溃。
+- **插件记忆注入修复** — 修复 DSH 0.1.6 更新后导致的插件触发判据不稳定。
+
+
+
 ## v1.1.9 (2026-09-15)
 
 ### English

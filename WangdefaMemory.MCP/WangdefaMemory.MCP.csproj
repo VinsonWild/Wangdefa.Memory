@@ -1,10 +1,41 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<!--
+		Packaging metadata: this project is published to NuGet.org and listed in
+		the Official MCP Registry, so the id, description and README are part of
+		the public contract rather than build details.
+
+		The id is dotted to match the core package (Wangdefa.Memory) it depends on.
+		The ProjectReference below becomes a NuGet dependency at pack time, so a
+		client that installs this package pulls the core engine automatically.
+
+		<Version> is deliberately its OWN line, not the core package's. This is a
+		thin stdio shell that rarely changes, while the core engine ships often.
+		NuGet treats the generated dependency as ">= the core version at pack
+		time", so an installed shell keeps picking up newer engines without being
+		re-released. Bump this only when something THIS package ships changes
+		(its sources, manifest or readme) — see .github/workflows/publish.yml,
+		which skips republishing otherwise.
+	-->
+	<PropertyGroup>
+		<PackageId>Wangdefa.Memory.Mcp</PackageId>
+		<Version>1.0.0</Version>
+		<Authors>wangdefa</Authors>
+		<Description>Local-first five-layer memory engine for agents, exposed over MCP (stdio). Installs the Wangdefa.Memory core package automatically.</Description>
+		<PackageTags>mcp;memory;agent;ai;local;sqlite;stdio</PackageTags>
+		<PackageProjectUrl>https://github.com/VinsonWild/Wangdefa.Memory</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/VinsonWild/Wangdefa.Memory</RepositoryUrl>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<GenerateDocumentationFile>false</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);CS1591</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -14,6 +45,16 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\WangdefaMemory\WangdefaMemory.csproj" />
+	</ItemGroup>
+
+	<!--
+		This package ships its OWN readme, not the repository one: the listing
+		audience here is someone wiring an MCP client, and the Official MCP
+		Registry reads this file's `mcp-name` marker to verify that the listing
+		belongs to this package.
+	-->
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="/" />
 	</ItemGroup>
 
 </Project>

@@ -528,6 +528,7 @@ public class MemorySinkService : IMemorySinkService
 
         // 15. 写入 SQLite
         var perceptionJson = JsonSerializer.Serialize(cognitiveRecord.Perception);
+        var realRoute = eventModel?.Result?.Route ?? "shallow";
         await _sqliteTools.WriteRecord(
             cognitiveRecord.Insight.Summary ?? "",
             agentResponse,
@@ -536,7 +537,7 @@ public class MemorySinkService : IMemorySinkService
             cognitiveRecord.Insight.Summary ?? "",
             0.8,
             perceptionJson,
-            "shallow",
+            realRoute,
             ""
         );
 

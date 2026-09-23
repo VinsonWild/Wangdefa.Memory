@@ -1,7 +1,7 @@
-/**
- * Package-owned invariant companion for `@wangdefa/dsh-wangdefa-memory-hook`.
- * @module @wangdefa/dsh-wangdefa-memory-hook/invariant
- */
+// Copyright © 2025-2026 VinsonWild (wangdefa)
+// Licensed under the Apache License, Version 2.0.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// See the LICENSE file in the repository root for full text.
 const PACKAGE_NAME = '@wangdefa/dsh-wangdefa-memory-hook';
 /** Cordis companion plugin name. */
 export const name = 'wangdefa-memory-hook-invariant';
@@ -20,4 +20,3 @@ const install = () => { };
  */
 export const apply = (ctx) => Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install));
 /* jscpd:ignore-end */
-//# sourceMappingURL=invariant.js.map

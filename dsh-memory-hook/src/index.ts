@@ -1,4 +1,4 @@
-// Copyright © 2025-2026 VinsonWild (wangdefa)
+// Copyright 漏 2025-2026 VinsonWild (wangdefa)
 // Licensed under the Apache License, Version 2.0.
 // You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 // See the LICENSE file in the repository root for full text.
@@ -13,15 +13,16 @@
  * tool with the last user input + assistant reply to persist the conversation.
  *
  * It listens on the harness's canonical extension points:
- * - `agent/pre-step`      (user prompt �?recall + inject, mirrors UserPromptSubmit)
- * - `agent/turn-stopping` (turn end �?save, deduped per turn)
+ * - `agent/pre-step`      (user prompt 鈫?recall + inject, mirrors UserPromptSubmit)
+ * - `agent/turn-stopping` (turn end 鈫?save, deduped per turn)
  * - `session/event`       (capture user input + assistant reply text)
  *
  * @module @wangdefa/dsh-wangdefa-memory-hook
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { CallId, createUserMessage, type ContentBlock, type MessageSource } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, type ContentBlock, type MessageSource } from '@deepseek-ai/dsh-llm'
+import * as llm from '@deepseek-ai/dsh-llm'
 import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import type { ToolExecutionResult } from '@deepseek-ai/dsh-tools'
@@ -29,6 +30,21 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { execSync } from 'node:child_process'
+
+/**
+ * Brand a string as a tool-call id across DSH versions.
+ *
+ * The export was renamed `CallId` → `ToolCallId` (present in the published
+ * `0.1.0-rc.*` line as `CallId`, renamed on `main`). Both are the same runtime
+ * brand — a string tagged with a phantom type — so resolve whichever this host
+ * exports rather than binding the plugin to one version's name. If a future
+ * host renames it again, the identity fallback keeps the plugin loading: the
+ * value is only an opaque id, so degrading is better than failing.
+ */
+const brandToolCallId: (id: string) => string =
+    (llm as Record<string, unknown>).ToolCallId as ((id: string) => string) | undefined
+    ?? (llm as Record<string, unknown>).CallId as ((id: string) => string) | undefined
+    ?? ((id: string): string => id)
 
 /** Plugin source stamp so injected memory is never mistaken for a user prompt. */
 const PLUGIN_SOURCE: MessageSource = { kind: 'plugin', plugin: 'wangdefa-memory-hook' }
@@ -86,7 +102,10 @@ async function callTool(
     signal: AbortSignal,
 ): Promise<ToolExecutionResult> {
     return ctx.tools.execute({
-        callId: CallId(`wangdefa-memory-hook:${name}:${Date.now()}`),
+        // The host declares this as its own branded id type; which name that
+        // brand carries differs across DSH versions, so the resolved string is
+        // asserted here rather than imported by name.
+        callId: brandToolCallId(`wangdefa-memory-hook:${name}:${Date.now()}`) as never,
         name,
         arguments: args,
         agent,
@@ -107,10 +126,21 @@ const GITHUB_API_URL =
     process.env.WANGDEFA_MEMORY_API_URL
     ?? 'https://api.github.com/repos/VinsonWild/Wangdefa.Memory/releases/latest'
 
+/**
+ * Resolved DeepSeek Harness home, mirroring the host's own `resolveDshHome`:
+ * an explicit override wins, then `$DSH_HOME`, then the OS home + `.dsh`.
+ * Kept local because a plugin has no Loader context to borrow.
+ */
+function dshHome(): string {
+    const explicit = process.env.DSH_HOME
+    if (explicit !== undefined && explicit.trim().length > 0) return path.resolve(explicit.trim())
+    return path.join(os.homedir(), '.dsh')
+}
+
 /** Directory where the engine (and its DLLs) are installed/looked up. */
 function engineInstallDir(): string {
     const explicit = process.env.WANGDEFA_MEMORY_PATH
-    return explicit ?? path.join(os.homedir(), '.wangdefa')
+    return explicit ?? path.join(dshHome(), '.wangdefa')
 }
 
 /** Version file path inside the engine install directory. */
@@ -181,7 +211,7 @@ async function getLatestVersion(): Promise<string | null> {
  * Returns true on success, false on failure.
  */
 function downloadAndUnpackEngine(dir: string, zipPath: string): boolean {
-    console.log(`[wangdefa-memory-hook] 开始下载引�? ${ENGINE_DOWNLOAD_URL}`)
+    console.log(`[wangdefa-memory-hook] 寮?濮嬩笅杞藉紩鎿? ${ENGINE_DOWNLOAD_URL}`)
     try {
         // Download
         if (process.platform === 'win32') {
@@ -197,7 +227,7 @@ function downloadAndUnpackEngine(dir: string, zipPath: string): boolean {
             })
         }
 
-        if (!fs.existsSync(zipPath)) throw new Error('下载后文件不存在')
+        if (!fs.existsSync(zipPath)) throw new Error('涓嬭浇鍚庢枃浠朵笉瀛樺湪')
 
         // Unpack
         if (process.platform === 'win32') {
@@ -217,14 +247,14 @@ function downloadAndUnpackEngine(dir: string, zipPath: string): boolean {
             for (const entry of fs.readdirSync(tmpDir)) {
                 fs.renameSync(path.join(tmpDir, entry), path.join(dir, entry))
             }
-            fs.rmdirSync(tmpDir, { recursive: true })
+            fs.rmSync(tmpDir, { recursive: true, force: true })
         }
 
         fs.rmSync(zipPath, { force: true })
         return true
     } catch (error: unknown) {
         fs.rmSync(zipPath, { force: true })
-        console.warn(`[wangdefa-memory-hook] ⚠️ 引擎下载/解压失败: ${String(error)}`)
+        console.warn(`[wangdefa-memory-hook] 鈿狅笍 寮曟搸涓嬭浇/瑙ｅ帇澶辫触: ${String(error)}`)
         return false
     }
 }
@@ -254,17 +284,17 @@ async function ensureEngine(): Promise<void> {
         }
         if (installed && installed !== latest) {
             console.log(
-                `[wangdefa-memory-hook] 📢 发现新版�? ${latest}（当�? ${installed}），正在自动更新...`,
+                `[wangdefa-memory-hook] 馃摙 鍙戠幇鏂扮増鏈? ${latest}锛堝綋鍓? ${installed}锛夛紝姝ｅ湪鑷姩鏇存柊...`,
             )
         } else {
-            console.log(`[wangdefa-memory-hook] 首次安装，下载引擎版�? ${latest}`)
+            console.log(`[wangdefa-memory-hook] 棣栨瀹夎锛屼笅杞藉紩鎿庣増鏈? ${latest}`)
         }
     } else {
         // GitHub API failed; fall back to "install if missing"
         if (engineInstalled()) {
             return
         }
-        console.log('[wangdefa-memory-hook] 无法检查最新版本，尝试下载默认引擎...')
+        console.log('[wangdefa-memory-hook] 鏃犳硶妫?鏌ユ渶鏂扮増鏈紝灏濊瘯涓嬭浇榛樿寮曟搸...')
     }
 
     // Download and unpack
@@ -285,10 +315,10 @@ async function ensureEngine(): Promise<void> {
             // Fallback: write the current date as a version marker
             writeInstalledVersion(new Date().toISOString().slice(0, 10))
         }
-        console.log(`[wangdefa-memory-hook] �?记忆体引擎已就绪: ${path.join(dir, 'WangdefaMemory.MCP.dll')}`)
+        console.log(`[wangdefa-memory-hook] 鉁?璁板繂浣撳紩鎿庡凡灏辩华: ${path.join(dir, 'WangdefaMemory.MCP.dll')}`)
     } else {
-        console.warn(`[wangdefa-memory-hook] ⚠️ 引擎安装失败，请手动下载: ${ENGINE_DOWNLOAD_URL}`)
-        console.warn(`[wangdefa-memory-hook] 解压�? ${dir}`)
+        console.warn(`[wangdefa-memory-hook] 鈿狅笍 寮曟搸瀹夎澶辫触锛岃鎵嬪姩涓嬭浇: ${ENGINE_DOWNLOAD_URL}`)
+        console.warn(`[wangdefa-memory-hook] 瑙ｅ帇鍒? ${dir}`)
     }
 }
 
@@ -303,6 +333,8 @@ export async function apply(ctx: Context, config: MemoryHookConfig = {}): Promis
     const maxInjectedChars = config.maxInjectedChars ?? 4000
 
     const state = new Map<string, MemorySnapshot>()
+    /** Turn-claim table: agentId -> last turn that already ran recall. */
+    const claimedTurns = new Map<string, number>()
 
     function snapshotFor(agent: Agent): MemorySnapshot {
         const key = agent.id
@@ -340,7 +372,13 @@ export async function apply(ctx: Context, config: MemoryHookConfig = {}): Promis
         }
     })
 
-    ctx.on('agent/pre-step', async ({ agent, messages, signal }, next): Promise<PreStepDecision> => {
+    ctx.on('agent/pre-step', async ({ agent, messages, step, turn, signal }, next): Promise<PreStepDecision> => {
+        // Per-turn contract: only the first step of a turn performs recall,
+        // and each turn is claimed exactly once (protects against replay).
+        if (step !== 1) return next()
+        if (claimedTurns.get(agent.id) === turn) return next()
+        claimedTurns.set(agent.id, turn)
+
         const prompt = messages.find(m => m.source.kind === 'user')
         if (prompt === undefined) return next()
         const userText = blocksToText(prompt.content).trim()
@@ -369,7 +407,11 @@ export async function apply(ctx: Context, config: MemoryHookConfig = {}): Promis
                 ctx.logger.debug(`memory-hook: process_message recall failed for ${agent.id}`)
             }
         } catch (error: unknown) {
-            ctx.logger.warn(`memory-hook: process_message recall threw for ${agent.id}: ${String(error)}`)
+            if (signal.aborted) {
+                ctx.logger.debug(`memory-hook: process_message recall aborted for ${agent.id}`)
+            } else {
+                ctx.logger.warn(`memory-hook: process_message recall threw for ${agent.id}: ${String(error)}`)
+            }
         }
 
         const downstream = await next()
@@ -380,7 +422,7 @@ export async function apply(ctx: Context, config: MemoryHookConfig = {}): Promis
                 ? recallText.slice(0, maxInjectedChars)
                 : recallText
         const memoryMessage = createUserMessage({
-            content: [{ type: 'text', text: `[已检索到的历史记忆]\n${memory}` }],
+            content: [{ type: 'text', text: `[宸叉绱㈠埌鐨勫巻鍙茶蹇哴\n${memory}` }],
             source: PLUGIN_SOURCE,
         })
         return { kind: 'enter', messages: [...downstream.messages, memoryMessage] }
@@ -414,5 +456,6 @@ export async function apply(ctx: Context, config: MemoryHookConfig = {}): Promis
 
     ctx.on('agent/disposed', ({ agent }) => {
         state.delete(agent.id)
+        claimedTurns.delete(agent.id)
     })
 }

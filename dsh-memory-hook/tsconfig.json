@@ -6,8 +6,9 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "types": [ "node" ],
     "rootDir": "src",
-    "outDir": "lib",
+    "outDir": "lib/types",
     "declaration": true,
     "declarationDir": "lib/types"
   },

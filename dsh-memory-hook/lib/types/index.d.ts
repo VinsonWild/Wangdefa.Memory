@@ -8,8 +8,8 @@
  * tool with the last user input + assistant reply to persist the conversation.
  *
  * It listens on the harness's canonical extension points:
- * - `agent/pre-step`      (user prompt → recall + inject, mirrors UserPromptSubmit)
- * - `agent/turn-stopping` (turn end → save, deduped per turn)
+ * - `agent/pre-step`      (user prompt 鈫?recall + inject, mirrors UserPromptSubmit)
+ * - `agent/turn-stopping` (turn end 鈫?save, deduped per turn)
  * - `session/event`       (capture user input + assistant reply text)
  *
  * @module @wangdefa/dsh-wangdefa-memory-hook
@@ -24,5 +24,4 @@ export interface MemoryHookConfig {
 }
 export declare const name = "wangdefa-memory-hook";
 export declare const inject: string[];
-export declare function apply(ctx: Context, config?: MemoryHookConfig): void;
-//# sourceMappingURL=index.d.ts.map
+export declare function apply(ctx: Context, config?: MemoryHookConfig): Promise<void>;

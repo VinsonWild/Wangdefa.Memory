@@ -1,8 +1,4 @@
 //#region lib/types/invariant.js
-/**
-* Package-owned invariant companion for `@wangdefa/dsh-wangdefa-memory-hook`.
-* @module @wangdefa/dsh-wangdefa-memory-hook/invariant
-*/
 const PACKAGE_NAME = "@wangdefa/dsh-wangdefa-memory-hook";
 /** Cordis companion plugin name. */
 const name = "wangdefa-memory-hook-invariant";

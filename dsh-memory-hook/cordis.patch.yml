@@ -1,4 +1,39 @@
+# Wangdefa.Memory bundle layer.
+#
+# Mounts the two rows this plugin needs, in order:
+#
+#   1. `wangdefa-memory-hook` — the cordis plugin that recalls memory on every
+#      prompt and persists the turn when it stops. On first run it downloads the
+#      memory engine into the harness home (see `engineInstallDir`), so a user
+#      who installs this bundle needs no manual setup.
+#
+#   2. `mcp-wangdefa` — the stdio MCP client that launches that engine. Its path
+#      is computed from the harness home rather than hardcoded, so it works on
+#      any machine: `dshHomePath()` is provided to `!!js` config expressions.
+#
+# The engine may not exist yet on a first install. `failOnStartupError: false`
+# keeps a missing engine from blocking boot, and the MCP client's own reconnect
+# policy (enabled by default) retries while the plugin finishes downloading it.
+# `maxAttempts` and `initialDelayMs` are widened below so a slow first download
+# still lands inside the retry budget (~10 minutes rather than ~2).
+
 - insert:
     - id: wangdefa-memory-hook
       name: '@wangdefa/dsh-wangdefa-memory-hook'
       config: {}
+
+    - id: mcp-wangdefa
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: WangdefaMemory
+        transport: stdio
+        command: dotnet
+        args:
+          - !!js dshHomePath('.wangdefa', 'WangdefaMemory.MCP.dll')
+        cwd: !!js dshHomePath('.wangdefa')
+        failOnStartupError: false
+        reconnect:
+          enabled: true
+          initialDelayMs: 1000
+          maxDelayMs: 30000
+          maxAttempts: 30

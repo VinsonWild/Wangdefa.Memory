@@ -1,0 +1,24 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "name": "io.github.VinsonWild/wangdefa-memory",
+  "version": "1.1.10",
+  "title": "Wangdefa Memory",
+  "description": "Local-first five-layer memory engine for agents: recalls what you discussed and persists each turn, with no cloud dependency.",
+  "websiteUrl": "https://github.com/VinsonWild/Wangdefa.Memory",
+  "repository": {
+    "url": "https://github.com/VinsonWild/Wangdefa.Memory",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "nuget",
+      "identifier": "Wangdefa.Memory.Mcp",
+      "version": "1.1.10",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [],
+      "environmentVariables": []
+    }
+  ]
+}
