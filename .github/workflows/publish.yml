@@ -79,9 +79,13 @@ jobs:
           read_version() {
             local file="$1"
             local v
-            v=$(grep -oP '(?<=<Version>)[^<]+' "$file" | head -1 | tr -d '[:space:]')
+            # Anchor on a real <Version>...</Version> element. A bare
+            # (?<=<Version>) lookbehind would also match prose mentioning the
+            # tag — including this repo's own comments — and swallow the
+            # following text as the version.
+            v=$(grep -oP '<Version>\s*\K[^<\s]+(?=\s*</Version>)' "$file" | head -1)
             if [ -z "$v" ]; then
-              echo "no <Version> found in $file" >&2
+              echo "no <Version>...</Version> element found in $file" >&2
               exit 1
             fi
             printf '%s' "$v"
